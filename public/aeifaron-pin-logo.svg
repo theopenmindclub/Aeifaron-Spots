@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 280" width="240" height="280">
+  <!-- Warm vintage cream background -->
+  <rect width="240" height="280" rx="44" fill="#FCF3DC"/>
+  
+  <!-- Green ground shadow oval -->
+  <ellipse cx="120" cy="242" rx="68" ry="20" fill="#4E7334"/>
+  
+  <!-- Cream border cutout around the pin tip overlapping the green oval -->
+  <path d="M120 251 C115 251 111 247 107 240 L52 152 C38 128 36 96 48 68 C62 38 89 22 120 22 C151 22 178 38 192 68 C204 96 202 128 188 152 L133 240 C129 247 125 251 120 251 Z" fill="#FCF3DC"/>
+
+  <!-- Red/Terracotta Location Pin -->
+  <path d="M120 241 C118 241 116 239 113 234 L60 148 C47 126 45 97 56 71 C69 44 93 30 120 30 C147 30 171 44 184 71 C195 97 193 126 180 148 L127 234 C124 239 122 241 120 241 Z" fill="#D84A34"/>
+
+  <!-- Fork (Left, cream #FCF3DC) -->
+  <path d="M78 68 C78 65 80.5 63 83.5 63 C86.5 63 89 65 89 68 L89 102 C89 104.5 91 106.5 93.5 106.5 C96 106.5 98 104.5 98 102 L98 68 C98 65 100.5 63 103.5 63 C106.5 63 109 65 109 68 L109 102 C109 104.5 111 106.5 113.5 106.5 C116 106.5 118 104.5 118 102 L118 68 C118 65 120.5 63 123.5 63 C126.5 63 129 65 129 68 L129 112 C129 125 120 134 110 137 L110 206 L97 186 L97 137 C87 134 78 125 78 112 Z" fill="#FCF3DC"/>
+
+  <!-- Knife (Right, cream #FCF3DC) -->
+  <path d="M162 60 C165 60 167 62 167 66 L163 200 L149 178 L150 146 C142 144 139 139 139 131 L139 106 C139 79 149 62 162 60 Z" fill="#FCF3DC"/>
+</svg>

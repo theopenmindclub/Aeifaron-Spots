@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="el">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      // Safeguard: Ensure window.fetch has both getter and setter so that any
+      // preview environment interceptors or polyfills can reassign it without throwing
+      // "Cannot set property fetch of #<Window> which has only a getter"
+      (function() {
+        try {
+          var _fetch = window.fetch;
+          Object.defineProperty(window, 'fetch', {
+            get: function() { return _fetch; },
+            set: function(val) { _fetch = val; },
+            configurable: true,
+            enumerable: true
+          });
+        } catch (e) {}
+        try {
+          if (typeof Window !== 'undefined' && Window.prototype) {
+            var protoDesc = Object.getOwnPropertyDescriptor(Window.prototype, 'fetch');
+            if (protoDesc && !protoDesc.set) {
+              var _protoFetch = Window.prototype.fetch;
+              Object.defineProperty(Window.prototype, 'fetch', {
+                get: function() { return _protoFetch; },
+                set: function(val) { _protoFetch = val; },
+                configurable: true,
+                enumerable: true
+              });
+            }
+          }
+        } catch (e) {}
+      })();
+    </script>
+    <title>Food & Joy Spots</title>
+    <meta name="description" content="Κορυφαία Food & Joy Spots στην Ελλάδα για την Αειφαριώτικη οικογένεια και παρέα, με πιστοποιημένες προτάσεις και gamification leaderboard." />
+    <meta property="og:title" content="Food & Joy Spots" />
+    <meta property="og:description" content="Κορυφαία Food & Joy Spots στην Ελλάδα για την Αειφαριώτικη οικογένεια και παρέα, με πιστοποιημένες προτάσεις και gamification leaderboard." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Roboto+Condensed:ital,wght@0,400;0,700;0,800;0,900;1,700&display=swap" rel="stylesheet">
+  </head>
+  <body class="bg-[#F1E9D2] dark:bg-[#243B35] text-[#243B35] dark:text-[#F1E9D2] transition-colors duration-200 antialiased selection:bg-[#5E0000] selection:text-[#CDFF9B]">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
