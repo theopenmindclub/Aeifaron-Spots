@@ -167,8 +167,14 @@ export interface PublicChatMessage {
   id: string;
   userId: string;
   firstName: string;
+  lastName?: string;
   avatarUrl: string;
+  title?: string;
   content: string;
+  categoryTag?: string;
+  pinned?: boolean;
+  likesCount?: number;
+  thumbnailUrl?: string;
   parentId?: string | null;
   depth?: number; // 0 = root post, 1 = reply, 2 = 3rd level nested reply
   createdAt: string;

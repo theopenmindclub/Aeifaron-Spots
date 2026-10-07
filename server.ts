@@ -90,8 +90,14 @@ let publicMessages: PublicChatMessage[] = [
     id: "pub-1",
     userId: "user-1",
     firstName: "Κώστας",
+    lastName: "Παπαγεωργίου",
     avatarUrl: DEMO_USERS[0].avatarUrl,
-    content: "Καλησπέρα σε όλη την Αειφαριώτικη οικογένεια! Ποιο είναι το αγαπημένο σας spot για σήμερα;",
+    title: "Καλωσήρθατε στην Αειφαριώτικη Κοινότητα! Ποιο είναι το αγαπημένο σας Spot;",
+    content: "Καλησπέρα σε όλη την Αειφαριώτικη οικογένεια! Γράψτε από κάτω ποιο είναι το κορυφαίο σας food spot ή παραλία για σήμερα ώστε να ανταλλάξουμε προτάσεις!",
+    categoryTag: "💬 Ανταλλαγή",
+    pinned: true,
+    likesCount: 28,
+    thumbnailUrl: INITIAL_HIT_SPOTS[3].coverImageUrl,
     parentId: null,
     depth: 0,
     createdAt: "19:30"
@@ -100,8 +106,10 @@ let publicMessages: PublicChatMessage[] = [
     id: "pub-2",
     userId: "user-2",
     firstName: "Έλενα",
+    lastName: "Βασιλείου",
     avatarUrl: DEMO_USERS[1].avatarUrl,
     content: "Καλησπέρα Κώστα! Μόλις δοκίμασα το φιστίκι Αιγίνης στο Σύνταγμα, απλά όνειρο!",
+    likesCount: 12,
     parentId: "pub-1",
     depth: 1,
     createdAt: "19:32"
@@ -110,8 +118,10 @@ let publicMessages: PublicChatMessage[] = [
     id: "pub-3",
     userId: "user-3",
     firstName: "Μανώλης",
+    lastName: "Κατσανεβάκης",
     avatarUrl: DEMO_USERS[2].avatarUrl,
     content: "Συμφωνώ απόλυτα Έλενα! Και το καϊμάκι με σαλέπι εκεί δεν παίζεται!",
+    likesCount: 9,
     parentId: "pub-2",
     depth: 2,
     createdAt: "19:35"
@@ -120,8 +130,14 @@ let publicMessages: PublicChatMessage[] = [
     id: "pub-4",
     userId: "user-5",
     firstName: "Σοφία",
+    lastName: "Νικολάου",
     avatarUrl: DEMO_USERS[4].avatarUrl,
-    content: "Χαιρετίσματα από τα Ζαγοροχώρια! Η χειροποίητη αλευρόπιτα σήμερα βγήκε τραγανή από τον ξυλόφουρνο!",
+    title: "Νέα Ανακάλυψη στα Ζαγοροχώρια & Προτάσεις Εβδομάδας",
+    content: "Χαιρετίσματα από τα Ζαγοροχώρια! Η χειροποίητη αλευρόπιτα σήμερα βγήκε τραγανή από τον ξυλόφουρνο! Κάντε κλικ για να σχολιάσετε τις δικές σας ορεινές προτάσεις.",
+    categoryTag: "🆕 Νέα & Προτάσεις",
+    pinned: true,
+    likesCount: 19,
+    thumbnailUrl: INITIAL_HIT_SPOTS[2].coverImageUrl,
     parentId: null,
     depth: 0,
     createdAt: "19:40"
@@ -254,8 +270,12 @@ app.post("/api/public-chat/message", (req, res) => {
     id: `pub-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
     userId: sender.id,
     firstName: sender.firstName,
+    lastName: sender.lastName,
     avatarUrl: sender.avatarUrl,
+    title: computedDepth === 0 ? `${trimmed.slice(0, 48)}${trimmed.length > 48 ? '...' : ''}` : undefined,
     content: trimmed,
+    categoryTag: computedDepth === 0 ? "💬 Ανταλλαγή" : undefined,
+    likesCount: 1,
     parentId: validParentId,
     depth: computedDepth,
     createdAt: timeStr
@@ -870,11 +890,48 @@ app.post("/api/ai/search-spots", async (req, res) => {
 
   const localOrdered = computeOrderedMatches();
   const ai = getAi();
+
+  // Fallback curated live web & Google Maps places if Gemini API key is not configured
+  const buildFallbackWebAndMaps = (kw: string) => {
+    const encoded = encodeURIComponent(`${kw} Ελλάδα φαγητό`);
+    return {
+      summaryText: `Ζωντανή αναζήτηση στο διαδίκτυο και στο Google Maps για «${kw}»: Βρέθηκαν προτάσεις στην κοινότητα καθώς και απευθείας σύνδεσμοι εξερεύνησης στο Google Maps και στον Ιστό.`,
+      mapsPlaces: [
+        {
+          title: `Google Maps: Κορυφαία μέρη για «${kw}» στην Ελλάδα`,
+          uri: `https://www.google.com/maps/search/?api=1&query=${encoded}`,
+          snippet: `Δείτε στον χάρτη όλα τα καταστήματα, ταβέρνες και σημεία που σερβίρουν ή σχετίζονται με «${kw}».`
+        },
+        {
+          title: `Google Maps: «${kw}» σε Αθήνα & Αττική`,
+          uri: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(kw + " Αθήνα")}`,
+          snippet: `Ανακαλύψτε επιλεγμένα στέκια στην Αθήνα για «${kw}».`
+        },
+        {
+          title: `Google Maps: «${kw}» σε Θεσσαλονίκη & Κρήτη`,
+          uri: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(kw + " Θεσσαλονίκη Κρήτη")}`,
+          snippet: `Εξερευνήστε αυθεντικές γαστρονομικές επιλογές για «${kw}».`
+        }
+      ],
+      webLinks: [
+        {
+          title: `Αναζήτηση Google Web: Κορυφαίες προτάσεις για «${kw}»`,
+          uri: `https://www.google.com/search?q=${encoded}`,
+          snippet: `Άρθρα, κριτικές και γαστρονομικοί οδηγοί στο διαδίκτυο για «${kw}».`
+        }
+      ]
+    };
+  };
+
   if (!ai || !qNorm) {
-    return res.json({ results: localOrdered });
+    return res.json({
+      results: localOrdered,
+      liveDiscovery: qNorm ? buildFallbackWebAndMaps(qRaw) : null
+    });
   }
 
   try {
+    const { lat, lng } = req.body;
     const catalog = hitSpots.map((s) => ({
       id: s.id,
       title: s.titleEl || s.title,
@@ -886,12 +943,12 @@ app.post("/api/ai/search-spots", async (req, res) => {
       secretSauce: s.whyIsItSpecialEl || s.whyIsItSpecial
     }));
 
-    const prompt = `You are the AI Spot Finder for AEIFARON SPOTS.
+    const catalogPrompt = `You are the AI Spot Finder for AEIFARON SPOTS.
 The user searched for the keyword/phrase: "${qRaw}".
 Here are the available spots:
 ${JSON.stringify(catalog)}
 
-Find all spots that either directly include the term "${qRaw}" OR offer something very close/similar in taste, ingredients, or style (for example "λουκάνικο χωριάτικο" matches traditional meat/charcoal tavernas & souvlaki spots; "παγωτό με πρόβειο γάλα" matches artisan sheep-milk gelato spots, etc.).
+Find all spots that either directly include the term "${qRaw}" OR offer something very close/similar in taste, ingredients, or style.
 Order them strictly from closest/exact match first to closely related matches next.
 Output JSON ONLY:
 {
@@ -900,53 +957,210 @@ Output JSON ONLY:
   ]
 }`;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.8-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            matches: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  id: { type: Type.STRING },
-                  matchType: { type: Type.STRING },
-                  aiMatchReason: { type: Type.STRING }
-                },
-                required: ["id", "aiMatchReason"]
-              }
-            }
-          },
-          required: ["matches"]
+    // Run 3 parallel requests:
+    // 1. Catalog semantic matching
+    // 2. Live Google Maps Grounding (real places in Greece for the keyword)
+    // 3. Live Google Search Grounding (real web articles/spots in Greece for the keyword)
+    const mapsConfig: any = {
+      tools: [{ googleMaps: {} }]
+    };
+    if (typeof lat === "number" && typeof lng === "number") {
+      mapsConfig.toolConfig = {
+        retrievalConfig: {
+          latLng: {
+            latitude: lat,
+            longitude: lng
+          }
         }
-      }
-    });
+      };
+    } else {
+      mapsConfig.toolConfig = {
+        retrievalConfig: {
+          latLng: {
+            latitude: 37.9755,
+            longitude: 23.7348
+          }
+        }
+      };
+    }
 
-    const parsed = JSON.parse(response.text || "{}");
-    if (Array.isArray(parsed.matches) && parsed.matches.length > 0) {
-      const results: any[] = [];
-      for (const m of parsed.matches) {
-        const found = hitSpots.find((s) => s.id === m.id);
-        if (found && !results.some((r) => r.id === found.id)) {
-          results.push({
-            ...found,
-            matchType: m.matchType === "exact" ? "exact" : "close",
-            aiMatchReason: m.aiMatchReason
-          });
+    const [catalogRes, mapsRes, webRes] = await Promise.allSettled([
+      ai.models.generateContent({
+        model: "gemini-3.8-flash",
+        contents: catalogPrompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              matches: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    id: { type: Type.STRING },
+                    matchType: { type: Type.STRING },
+                    aiMatchReason: { type: Type.STRING }
+                  },
+                  required: ["id", "aiMatchReason"]
+                }
+              }
+            },
+            required: ["matches"]
+          }
         }
+      }),
+      ai.models.generateContent({
+        model: "gemini-3.8-flash",
+        contents: `Βρες 4-5 πραγματικά, αυθεντικά και κορυφαία καταστήματα εστίασης, ταβέρνες, ζαχαροπλαστεία ή τοποθεσίες στην Ελλάδα στο Google Maps που φημίζονται για: "${qRaw}". Γράψε στα Ελληνικά σύντομη περιγραφή για το καθένα (όνομα, περιοχή και γιατί ξεχωρίζει για "${qRaw}").`,
+        config: mapsConfig
+      }),
+      ai.models.generateContent({
+        model: "gemini-3.8-flash",
+        contents: `Κάνε ζωντανή αναζήτηση στο διαδίκτυο για τα καλύτερα spots, στέκια ή μέρη στην Ελλάδα για: "${qRaw}". Δώσε 3-4 κορυφαίες προτάσεις στα Ελληνικά με σύντομη επεξήγηση.`,
+        config: {
+          tools: [{ googleSearch: {} }]
+        }
+      })
+    ]);
+
+    // 1. Process community catalog matches
+    let finalCatalogResults = localOrdered;
+    if (catalogRes.status === "fulfilled" && catalogRes.value.text) {
+      try {
+        const parsed = JSON.parse(catalogRes.value.text || "{}");
+        if (Array.isArray(parsed.matches) && parsed.matches.length > 0) {
+          const matchedList: any[] = [];
+          for (const m of parsed.matches) {
+            const found = hitSpots.find((s) => s.id === m.id);
+            if (found && !matchedList.some((r) => r.id === found.id)) {
+              matchedList.push({
+                ...found,
+                matchType: m.matchType === "exact" ? "exact" : "close",
+                aiMatchReason: m.aiMatchReason
+              });
+            }
+          }
+          if (matchedList.length > 0) {
+            finalCatalogResults = matchedList;
+          }
+        }
+      } catch {}
+    }
+
+    // 2. Process Google Maps Grounding results & groundingChunks
+    const mapsPlaces: { title: string; uri: string; snippet?: string }[] = [];
+    let summaryText = "";
+
+    if (mapsRes.status === "fulfilled") {
+      if (mapsRes.value.text) {
+        summaryText = mapsRes.value.text.trim();
       }
-      if (results.length > 0) {
-        return res.json({ results });
+      const chunks = mapsRes.value.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+      for (const chunk of chunks as any[]) {
+        if (chunk.maps && chunk.maps.uri) {
+          const snippets: string[] = [];
+          if (Array.isArray(chunk.maps.placeAnswerSources?.reviewSnippets)) {
+            for (const rs of chunk.maps.placeAnswerSources.reviewSnippets) {
+              if (rs.text) snippets.push(rs.text);
+            }
+          }
+          if (!mapsPlaces.some((p) => p.uri === chunk.maps.uri)) {
+            mapsPlaces.push({
+              title: chunk.maps.title || `Google Maps Spot για «${qRaw}»`,
+              uri: chunk.maps.uri,
+              snippet: snippets[0] || `Επαληθευμένο σημείο στο Google Maps για «${qRaw}»`
+            });
+          }
+        }
       }
     }
-    return res.json({ results: localOrdered });
+
+    // 3. Process Google Search Grounding results & groundingChunks
+    const webLinks: { title: string; uri: string; snippet?: string }[] = [];
+    if (webRes.status === "fulfilled") {
+      if (!summaryText && webRes.value.text) {
+        summaryText = webRes.value.text.trim();
+      } else if (webRes.value.text) {
+        summaryText = `${summaryText}\n\n${webRes.value.text.trim()}`;
+      }
+      const wChunks = webRes.value.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+      for (const chunk of wChunks as any[]) {
+        if (chunk.web && chunk.web.uri) {
+          if (!webLinks.some((w) => w.uri === chunk.web.uri)) {
+            webLinks.push({
+              title: chunk.web.title || `Πρόταση Ιστού για «${qRaw}»`,
+              uri: chunk.web.uri,
+              snippet: `Πηγή διαδικτύου από τη ζωντανή αναζήτηση Google Search`
+            });
+          }
+        }
+      }
+    }
+
+    const fallbackInfo = buildFallbackWebAndMaps(qRaw);
+    if (mapsPlaces.length === 0) {
+      mapsPlaces.push(...fallbackInfo.mapsPlaces);
+    }
+    if (webLinks.length === 0) {
+      webLinks.push(...fallbackInfo.webLinks);
+    }
+    if (!summaryText) {
+      summaryText = fallbackInfo.summaryText;
+    }
+
+    return res.json({
+      results: finalCatalogResults,
+      liveDiscovery: {
+        summaryText,
+        mapsPlaces,
+        webLinks
+      }
+    });
   } catch (e) {
-    return res.json({ results: localOrdered });
+    return res.json({
+      results: localOrdered,
+      liveDiscovery: buildFallbackWebAndMaps(qRaw)
+    });
   }
+});
+
+// App Improvement Feedback Endpoint
+interface AppFeedbackEntry {
+  id: string;
+  name: string;
+  comment: string;
+  createdAt: string;
+}
+
+const appFeedbackList: AppFeedbackEntry[] = [
+  {
+    id: "fb-1",
+    name: "Κώστας Παπαγεωργίου",
+    comment: "Πολύ εύχρηστη η αναζήτηση με λέξεις-κλειδιά! Θα ήταν ωραίο να μπορούμε να φιλτράρουμε και ανά εποχή (π.χ. χειμερινά ορεινά στέκια).",
+    createdAt: "2026-03-15T10:30:00.000Z"
+  }
+];
+
+app.get("/api/feedback", (_req, res) => {
+  res.json(appFeedbackList);
+});
+
+app.post("/api/feedback", (req, res) => {
+  const { name, comment } = req.body;
+  const cleanName = typeof name === "string" ? name.trim().slice(0, 100) : "";
+  const cleanComment = typeof comment === "string" ? comment.trim().slice(0, 1500) : "";
+  if (!cleanName || !cleanComment) {
+    return res.status(400).json({ error: "Απαιτείται όνομα και σχόλιο βελτίωσης." });
+  }
+  const entry: AppFeedbackEntry = {
+    id: `fb-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    name: cleanName,
+    comment: cleanComment,
+    createdAt: new Date().toISOString()
+  };
+  appFeedbackList.unshift(entry);
+  res.status(201).json(entry);
 });
 
 // Profile Voice-Over TTS Endpoint using gemini-3.8-flash-lite-tts

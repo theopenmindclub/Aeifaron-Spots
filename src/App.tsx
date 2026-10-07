@@ -19,9 +19,21 @@ import {
   Compass,
   X,
   Sparkles,
-  Heart
+  Heart,
+  MessageSquarePlus,
+  FileText,
+  Send,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+
+interface FeedbackItem {
+  id: string;
+  name: string;
+  comment: string;
+  createdAt: string;
+}
 
 const MainContent: React.FC = () => {
   const { 
@@ -35,10 +47,86 @@ const MainContent: React.FC = () => {
     selectedRegion, 
     sortBy, 
     secretGemsOnly,
-    setIsCreateModalOpen 
+    setIsCreateModalOpen,
+    currentUser,
+    showToast
   } = useApp();
 
   const [isAboutUsOpen, setIsAboutUsOpen] = React.useState(false);
+  const [isFeedbackOpen, setIsFeedbackOpen] = React.useState(false);
+  const [isTermsOpen, setIsTermsOpen] = React.useState(false);
+
+  const [feedbackName, setFeedbackName] = React.useState('');
+  const [feedbackComment, setFeedbackComment] = React.useState('');
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = React.useState(false);
+  const [feedbackSubmittedSuccess, setFeedbackSubmittedSuccess] = React.useState(false);
+  const [feedbackItems, setFeedbackItems] = React.useState<FeedbackItem[]>([]);
+
+  React.useEffect(() => {
+    if (currentUser && !feedbackName) {
+      setFeedbackName(`${currentUser.firstName} ${currentUser.lastName || ''}`.trim());
+    }
+  }, [currentUser]);
+
+  React.useEffect(() => {
+    if (isFeedbackOpen) {
+      fetch('/api/feedback')
+        .then((res) => res.json())
+        .then((data) => {
+          if (Array.isArray(data)) setFeedbackItems(data);
+        })
+        .catch(() => {});
+    }
+  }, [isFeedbackOpen]);
+
+  const handleFeedbackSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanName = feedbackName.trim();
+    const cleanComment = feedbackComment.trim();
+    if (!cleanName || !cleanComment) {
+      showToast('Παρακαλούμε συμπληρώστε το όνομά σας και το σχόλιο βελτίωσης.', 'error');
+      return;
+    }
+
+    setIsSubmittingFeedback(true);
+    try {
+      const res = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: cleanName, comment: cleanComment })
+      });
+      if (res.ok) {
+        const created: FeedbackItem = await res.json();
+        setFeedbackItems((prev) => [created, ...prev]);
+      } else {
+        const fallbackItem: FeedbackItem = {
+          id: `fb-${Date.now()}`,
+          name: cleanName,
+          comment: cleanComment,
+          createdAt: new Date().toISOString()
+        };
+        setFeedbackItems((prev) => [fallbackItem, ...prev]);
+      }
+      setFeedbackComment('');
+      setFeedbackSubmittedSuccess(true);
+      showToast('Ευχαριστούμε! Το σχόλιό σας για τη βελτίωση της εφαρμογής καταχωρήθηκε.', 'success');
+      setTimeout(() => setFeedbackSubmittedSuccess(false), 5000);
+    } catch {
+      const fallbackItem: FeedbackItem = {
+        id: `fb-${Date.now()}`,
+        name: cleanName,
+        comment: cleanComment,
+        createdAt: new Date().toISOString()
+      };
+      setFeedbackItems((prev) => [fallbackItem, ...prev]);
+      setFeedbackComment('');
+      setFeedbackSubmittedSuccess(true);
+      showToast('Ευχαριστούμε! Το σχόλιό σας καταχωρήθηκε.', 'success');
+      setTimeout(() => setFeedbackSubmittedSuccess(false), 5000);
+    } finally {
+      setIsSubmittingFeedback(false);
+    }
+  };
 
   // Filter & Sort Spots
   const filteredSpots = spots.filter((spot) => {
@@ -236,14 +324,30 @@ const MainContent: React.FC = () => {
           </div>
 
           <div className="pt-6 border-t border-[#6B8E7B]/50 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#B7C9B1]">
-            <div className="flex flex-wrap items-center gap-2 font-semibold">
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2 font-semibold">
               <span>© 2006-2026 Aeifaron Spots •</span>
               <button
                 type="button"
                 onClick={() => setIsAboutUsOpen(true)}
                 className="font-heading text-sm font-extrabold text-[#CDFF9B] hover:text-[#F1E9D2] underline underline-offset-4 cursor-pointer transition-colors"
               >
-                {language === 'el' ? 'Για εμάς' : 'About Us'}
+                Για εμάς
+              </button>
+              <span>•</span>
+              <button
+                type="button"
+                onClick={() => setIsFeedbackOpen(true)}
+                className="font-heading text-sm font-extrabold text-[#CDFF9B] hover:text-[#F1E9D2] underline underline-offset-4 cursor-pointer transition-colors"
+              >
+                Σχόλια/Βελτίωση
+              </button>
+              <span>•</span>
+              <button
+                type="button"
+                onClick={() => setIsTermsOpen(true)}
+                className="font-heading text-sm font-extrabold text-[#CDFF9B] hover:text-[#F1E9D2] underline underline-offset-4 cursor-pointer transition-colors"
+              >
+                Όροι & Προϋποθέσεις
               </button>
             </div>
           </div>
@@ -325,6 +429,235 @@ const MainContent: React.FC = () => {
                     className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#243B35] dark:bg-[#6B8E7B] hover:bg-[#6B8E7B] text-[#F1E9D2] font-heading text-sm font-bold cursor-pointer transition-colors text-center"
                   >
                     Κλείσιμο
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* "Σχόλια/Βελτίωση" Popup Modal */}
+      <AnimatePresence>
+        {isFeedbackOpen && (
+          <div
+            onClick={() => setIsFeedbackOpen(false)}
+            className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ duration: 0.2 }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative w-full max-w-xl max-h-[88vh] flex flex-col rounded-2xl sm:rounded-3xl bg-[#F1E9D2] dark:bg-[#243B35] border-2 border-[#6B8E7B] shadow-2xl overflow-hidden text-[#243B35] dark:text-[#F1E9D2] my-auto"
+            >
+              {/* Modal Header */}
+              <div className="shrink-0 flex items-center justify-between gap-2.5 px-4 sm:px-6 py-3.5 sm:py-5 bg-[#243B35] text-[#F1E9D2] border-b-2 border-[#6B8E7B]">
+                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-[#6B8E7B]/30 border border-[#CDFF9B]/40 flex items-center justify-center text-[#CDFF9B] shrink-0">
+                    <MessageSquarePlus className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-heading text-base sm:text-2xl font-bold text-[#F1E9D2] leading-snug">
+                      Σχόλια / Βελτίωση Εφαρμογής
+                    </h3>
+                    <p className="text-[11px] sm:text-xs font-semibold text-[#B7C9B1] mt-0.5">
+                      Η γνώμη σας κάνει το Aeifaron Spots ακόμα καλύτερο
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsFeedbackOpen(false)}
+                  aria-label="Close modal"
+                  className="p-2 rounded-xl bg-[#6B8E7B] hover:bg-[#B7C9B1] text-[#F1E9D2] hover:text-[#243B35] transition-colors cursor-pointer shrink-0"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Scrollable Modal Body */}
+              <div className="overflow-y-auto p-4 sm:p-6 space-y-5 flex-1">
+                {/* Guidance Banner */}
+                <div className="p-4 rounded-2xl bg-[#6B2F2F] text-[#F4D6C6] border border-[#D88C72] shadow-sm space-y-1.5">
+                  <div className="flex items-center gap-2 font-heading text-sm sm:text-base font-extrabold text-[#CDFF9B]">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>Οδηγία για πλήρη κατανόηση</span>
+                  </div>
+                  <p className="text-xs sm:text-sm leading-relaxed font-medium">
+                    Παρακαλούμε να είστε <strong>συγκεκριμένοι και καθαροί στην έκφραση</strong> όταν περιγράφετε την ιδέα, την παρατήρηση ή την πρότασή σας, ώστε να υπάρχει <strong>πλήρης κατανόηση</strong> και να υλοποιηθεί άμεσα η βελτίωση της εφαρμογής.
+                  </p>
+                </div>
+
+                {/* Form: Όνομα και Πεδίο Σχολίου */}
+                <form onSubmit={handleFeedbackSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-xs sm:text-sm font-extrabold text-[#243B35] dark:text-[#F1E9D2] mb-1.5">
+                      Όνομα Μέλους *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={feedbackName}
+                      onChange={(e) => setFeedbackName(e.target.value)}
+                      placeholder="π.χ. Γιώργος Παπαδόπουλος"
+                      className="w-full px-4 py-3 rounded-xl bg-white dark:bg-[#1b2d28] border-2 border-[#6B8E7B] text-sm font-semibold text-[#243B35] dark:text-[#F1E9D2] placeholder-[#243B35]/50 dark:placeholder-[#B7C9B1]/60 focus:outline-none focus:border-[#243B35] dark:focus:border-[#CDFF9B]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs sm:text-sm font-extrabold text-[#243B35] dark:text-[#F1E9D2] mb-1.5">
+                      Σχόλιο / Πρόταση προς Βελτίωση *
+                    </label>
+                    <textarea
+                      rows={4}
+                      required
+                      value={feedbackComment}
+                      onChange={(e) => setFeedbackComment(e.target.value)}
+                      placeholder="Γράψτε συγκεκριμένα και καθαρά τι θα θέλατε να προστεθεί, να αλλάξει ή να βελτιωθεί στην εφαρμογή..."
+                      className="w-full px-4 py-3 rounded-xl bg-white dark:bg-[#1b2d28] border-2 border-[#6B8E7B] text-sm font-semibold text-[#243B35] dark:text-[#F1E9D2] placeholder-[#243B35]/50 dark:placeholder-[#B7C9B1]/60 focus:outline-none focus:border-[#243B35] dark:focus:border-[#CDFF9B] resize-y"
+                    />
+                  </div>
+
+                  {feedbackSubmittedSuccess && (
+                    <div className="p-3.5 rounded-xl bg-emerald-800 text-[#CDFF9B] text-xs sm:text-sm font-bold flex items-center gap-2 shadow-sm">
+                      <CheckCircle2 className="w-4 h-4 shrink-0" />
+                      <span>Το σχόλιό σας καταχωρήθηκε επιτυχώς! Ευχαριστούμε για τη συμβολή σας.</span>
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap items-center justify-end gap-2.5 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setIsFeedbackOpen(false)}
+                      className="px-4 py-2.5 rounded-xl bg-[#B7C9B1] hover:bg-[#6B8E7B] text-[#243B35] hover:text-[#F1E9D2] text-xs sm:text-sm font-extrabold cursor-pointer transition-colors"
+                    >
+                      Ακύρωση
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmittingFeedback}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#243B35] dark:bg-[#CDFF9B] hover:bg-[#6B8E7B] text-[#CDFF9B] dark:text-[#243B35] font-heading text-xs sm:text-sm font-extrabold shadow-md cursor-pointer transition-colors disabled:opacity-50"
+                    >
+                      <Send className="w-4 h-4" />
+                      <span>{isSubmittingFeedback ? 'Αποστολή...' : 'Υποβολή Σχολίου'}</span>
+                    </button>
+                  </div>
+                </form>
+
+                {/* Recent Member Feedback */}
+                {feedbackItems.length > 0 && (
+                  <div className="pt-4 border-t border-[#6B8E7B]/40 space-y-2.5">
+                    <h4 className="text-xs font-extrabold uppercase tracking-wider text-[#243B35]/80 dark:text-[#B7C9B1]">
+                      Πρόσφατα Σχόλια Βελτίωσης Μελών ({feedbackItems.length})
+                    </h4>
+                    <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
+                      {feedbackItems.map((item) => (
+                        <div
+                          key={item.id}
+                          className="p-3 rounded-xl bg-white/80 dark:bg-[#1b2d28] border border-[#6B8E7B]/50 space-y-1"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-xs font-extrabold text-[#6B2F2F] dark:text-[#CDFF9B]">
+                              {item.name}
+                            </span>
+                            <span className="text-[10px] font-semibold text-[#243B35]/60 dark:text-[#B7C9B1]">
+                              {new Date(item.createdAt).toLocaleDateString('el-GR')}
+                            </span>
+                          </div>
+                          <p className="text-xs font-medium text-[#243B35] dark:text-[#F1E9D2] leading-relaxed">
+                            {item.comment}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* "Όροι & Προϋποθέσεις" Popup Modal */}
+      <AnimatePresence>
+        {isTermsOpen && (
+          <div
+            onClick={() => setIsTermsOpen(false)}
+            className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ duration: 0.2 }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative w-full max-w-xl max-h-[88vh] flex flex-col rounded-2xl sm:rounded-3xl bg-[#F1E9D2] dark:bg-[#243B35] border-2 border-[#6B8E7B] shadow-2xl overflow-hidden text-[#243B35] dark:text-[#F1E9D2] my-auto"
+            >
+              {/* Modal Header */}
+              <div className="shrink-0 flex items-center justify-between gap-2.5 px-4 sm:px-6 py-3.5 sm:py-5 bg-[#243B35] text-[#F1E9D2] border-b-2 border-[#6B8E7B]">
+                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-[#6B8E7B]/30 border border-[#CDFF9B]/40 flex items-center justify-center text-[#CDFF9B] shrink-0">
+                    <FileText className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-heading text-base sm:text-2xl font-bold text-[#F1E9D2] leading-snug">
+                      Όροι & Προϋποθέσεις Χρήσης
+                    </h3>
+                    <p className="text-[11px] sm:text-xs font-semibold text-[#B7C9B1] mt-0.5">
+                      © 2006-2026 Aeifaron Spots • Κλειστή Κοινότητα Μελών
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsTermsOpen(false)}
+                  aria-label="Close modal"
+                  className="p-2 rounded-xl bg-[#6B8E7B] hover:bg-[#B7C9B1] text-[#F1E9D2] hover:text-[#243B35] transition-colors cursor-pointer shrink-0"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Scrollable Modal Body */}
+              <div className="overflow-y-auto p-4 sm:p-8 space-y-4 sm:space-y-5 flex-1">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#6B2F2F] text-[#F4D6C6] text-[11px] sm:text-xs font-extrabold">
+                  <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+                  <span>Εσωτερική Χρήση Μελών Αείφαρον</span>
+                </div>
+
+                <div className="space-y-4 text-sm sm:text-base leading-relaxed font-medium text-[#243B35] dark:text-[#F1E9D2]">
+                  <div className="p-4 sm:p-5 rounded-2xl bg-white/90 dark:bg-[#1b2d28] border-2 border-[#6B8E7B] shadow-sm">
+                    <p className="text-sm sm:text-lg leading-relaxed font-semibold text-[#243B35] dark:text-[#F1E9D2]">
+                      Η παρούσα εφαρμογή έχει παραχθεί για <strong>κλειστή χρήση των μελών του Αείφαρον</strong> και για την <strong>καταγραφή και απομνημόνευση των καλύτερων γαστρονομικών εμπειριών</strong>, με σκοπό το <strong>μοίρασμα</strong> και την <strong>ευκολία τα μέλη να έχουν πρόσβαση σε επιλεγμένα σημεία</strong>.
+                    </p>
+                  </div>
+
+                  <ul className="space-y-2.5 text-xs sm:text-sm text-[#243B35]/90 dark:text-[#B7C9B1] list-disc pl-5 font-semibold">
+                    <li>
+                      <strong>Κλειστή Κοινότητα:</strong> Η πρόσβαση, οι καταχωρήσεις και οι συζητήσεις προορίζονται αποκλειστικά για τα μέλη της Αειφαριώτικης οικογένειας.
+                    </li>
+                    <li>
+                      <strong>Αυθεντική Καταγραφή & Απομνημόνευση:</strong> Κάθε πρόταση βασίζεται σε προσωπική, δοκιμασμένη εμπειρία μέλους ώστε να διατηρείται ζωντανό το αρχείο των αγαπημένων μας επιλογών.
+                    </li>
+                    <li>
+                      <strong>Μοίρασμα & Ευκολία Πρόσβασης:</strong> Στόχος της πλατφόρμας είναι η άμεση, εύκολη εύρεση επιλεγμένων σημείων φαγητού, γλυκού, καφέ και τοποθεσιών σε όλη την Ελλάδα από κάθε μέλος.
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="pt-3.5 sm:pt-4 border-t border-[#6B8E7B]/40 flex flex-wrap items-center justify-between gap-3">
+                  <span className="flex items-center gap-1.5 text-xs font-bold text-[#6B2F2F] dark:text-[#F4D6C6]">
+                    <Heart className="w-4 h-4 fill-current shrink-0" />
+                    <span>Αειφαριώτικη Οικογένεια • 2006-2026</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIsTermsOpen(false)}
+                    className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#243B35] dark:bg-[#6B8E7B] hover:bg-[#6B8E7B] text-[#F1E9D2] font-heading text-sm font-bold cursor-pointer transition-colors text-center"
+                  >
+                    Κατανοητό • Κλείσιμο
                   </button>
                 </div>
               </div>

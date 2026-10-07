@@ -12,7 +12,10 @@ import {
   Send,
   Trophy,
   CornerDownRight,
-  ChevronDown
+  ChevronDown,
+  ThumbsUp,
+  Pin,
+  SlidersHorizontal
 } from 'lucide-react';
 
 const DROPDOWN_CATEGORIES: SpotCategory[] = [
@@ -77,6 +80,10 @@ export const HeroBanner: React.FC = () => {
   const [chatText, setChatText] = useState('');
   const [replyingToMsg, setReplyingToMsg] = useState<PublicChatMessage | null>(null);
   const [isSendingChat, setIsSendingChat] = useState(false);
+  const [communitySubTab, setCommunitySubTab] = useState<'discussion' | 'leaderboard' | 'members'>('discussion');
+  const [feedCategoryFilter, setFeedCategoryFilter] = useState<'ALL' | '🆕 Νέα & Προτάσεις' | '💬 Ανταλλαγή' | '🏆 Leaderboard'>('ALL');
+  const [likedPostIds, setLikedPostIds] = useState<Record<string, boolean>>({});
+  const composerInputRef = React.useRef<HTMLInputElement>(null);
 
   const activeFiltersCount = 
     (selectedCategory !== 'ALL' ? 1 : 0) + 
@@ -404,284 +411,562 @@ export const HeroBanner: React.FC = () => {
           })}
         </div>
 
-        {/* 4. Leaderboard Ranking & Ζωντανή Συζήτηση Μελών (Exact Leaderboard Ranking as in ΜΕΛΗ & LEADERBOARD + Clean Threaded UX Interface up to 3 levels, 200 char limit) */}
-        <div className="rounded-3xl bg-[#F4D6C6] dark:bg-[#1b2d28] border-2 border-[#6B2F2F] dark:border-[#6B8E7B] shadow-lg overflow-hidden">
+        {/* 4. Leaderboard Ranking & Ζωντανή Συζήτηση Μελών — Skool-Style Community Feed & Leaderboard UX */}
+        <div className="rounded-3xl bg-[#F8F7F4] dark:bg-slate-900 border border-stone-200 dark:border-slate-800 shadow-lg overflow-hidden">
           
-          {/* Header: Leaderboard Ranking & Ζωντανή Συζήτηση Μελών */}
-          <div className="px-5 py-4 bg-[#6B2F2F] text-[#F4D6C6] border-b border-[#D88C72]/40">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div className="flex items-center gap-2.5">
-                <Trophy className="w-5 h-5 text-[#D88C72] shrink-0" />
-                <div>
-                  <h3 className="font-heading text-lg sm:text-xl font-bold leading-tight">
-                    {language === 'el'
-                      ? 'Leaderboard Ranking & Ζωντανή Συζήτηση Μελών'
-                      : 'Leaderboard Ranking & Live Member Discussion'}
-                  </h3>
-                  <p className="text-[11px] text-[#F4D6C6]/85 font-medium">
-                    {language === 'el'
-                      ? 'Κάντε κλικ πάνω σε οποιοδήποτε μήνυμα για να απαντήσετε από κάτω • Έως 200 χαρακτήρες'
-                      : 'Click on any message to reply underneath • Up to 200 characters'}
-                  </p>
-                </div>
+          {/* Top Title Banner */}
+          <div className="px-5 pt-4 pb-2 bg-white dark:bg-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-[#6B2F2F] text-[#F4D6C6] flex items-center justify-center shadow-2xs shrink-0">
+                <Trophy className="w-5 h-5 text-[#D88C72]" />
               </div>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#A44A3F] text-[#F4D6C6] text-[11px] font-bold border border-[#D88C72]/60 self-start sm:self-auto">
-                <MessageSquare className="w-3.5 h-3.5" />
-                <span>{language === 'el' ? 'Ζωντανή Συζήτηση' : 'Live Discussion'}</span>
-              </span>
+              <div>
+                <h3 className="font-heading text-lg sm:text-xl font-bold text-stone-900 dark:text-white leading-tight">
+                  Leaderboard Ranking &amp; Ζωντανή Συζήτηση Μελών
+                </h3>
+                <p className="text-[11px] text-stone-500 dark:text-stone-400 font-medium">
+                  Κάντε κλικ πάνω σε οποιοδήποτε μήνυμα για να απαντήσετε από κάτω • Έως 200 χαρακτήρες
+                </p>
+              </div>
             </div>
           </div>
 
-          {/* Main UX Interface Grid: Leaderboard Ranking (exact same compact design as ΜΕΛΗ & LEADERBOARD) + Live Threaded Discussion */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-[#D88C72] dark:divide-slate-800 bg-[#FFF7F2] dark:bg-slate-900/95">
+          {/* Skool-Style Horizontal Navigation Tabs: Ζωντανή Συζήτηση | Leaderboard | Μέλη */}
+          <div className="px-5 bg-white dark:bg-slate-900 border-b border-stone-200 dark:border-slate-800 flex items-center gap-6 overflow-x-auto scrollbar-none">
+            <button
+              type="button"
+              onClick={() => setCommunitySubTab('discussion')}
+              className={`py-3 text-sm font-bold whitespace-nowrap border-b-[3px] transition-colors cursor-pointer ${
+                communitySubTab === 'discussion'
+                  ? 'border-stone-900 dark:border-[#F4D6C6] text-stone-900 dark:text-white'
+                  : 'border-transparent text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200'
+              }`}
+            >
+              Ζωντανή Συζήτηση
+            </button>
+            <button
+              type="button"
+              onClick={() => setCommunitySubTab('leaderboard')}
+              className={`py-3 text-sm font-bold whitespace-nowrap border-b-[3px] transition-colors cursor-pointer flex items-center gap-1.5 ${
+                communitySubTab === 'leaderboard'
+                  ? 'border-stone-900 dark:border-[#F4D6C6] text-stone-900 dark:text-white'
+                  : 'border-transparent text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200'
+              }`}
+            >
+              <span>Leaderboard</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setCommunitySubTab('members')}
+              className={`py-3 text-sm font-bold whitespace-nowrap border-b-[3px] transition-colors cursor-pointer ${
+                communitySubTab === 'members'
+                  ? 'border-stone-900 dark:border-[#F4D6C6] text-stone-900 dark:text-white'
+                  : 'border-transparent text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200'
+              }`}
+            >
+              Μέλη ({rankedMembers.length})
+            </button>
+          </div>
+
+          {/* Main Body Area */}
+          <div className="p-4 sm:p-5 space-y-4">
             
-            {/* Left / Top Column: Compact Mobile-Friendly Leaderboard Ranking (identical to ΜΕΛΗ & LEADERBOARD) */}
-            <div className="lg:col-span-4 p-4 sm:p-5 bg-[#FDF1E8]/70 dark:bg-slate-900/60 flex flex-col justify-between">
-              <div className="rounded-3xl bg-white dark:bg-slate-900 border-2 border-[#6B2F2F] dark:border-[#D88C72] shadow-md overflow-hidden">
-                <div className="px-4 py-3 bg-[#6B2F2F] text-[#F4D6C6] flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Trophy className="w-4 h-4 text-[#D88C72]" />
-                    <span className="font-heading text-base font-bold tracking-wide">
-                      Leaderboard Ranking
+            {/* "Write something" Pill Input Box at the top (Exactly like Skool screenshot) */}
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-stone-200/90 dark:border-slate-700 shadow-xs p-3 sm:p-3.5 space-y-2.5">
+              {replyingToMsg && (
+                <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-[#6B2F2F] text-[#F4D6C6] text-xs font-bold">
+                  <span className="flex items-center gap-1.5 truncate">
+                    <CornerDownRight className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">
+                      Απάντηση στον/στην {replyingToMsg.firstName}: «{replyingToMsg.content}»
                     </span>
-                  </div>
-                  <span className="text-[11px] font-bold text-[#F4D6C6]/80">
-                    {language === 'el' ? 'Κατάταξη Μελών' : 'Member Ranking'}
                   </span>
+                  <button
+                    type="button"
+                    onClick={() => setReplyingToMsg(null)}
+                    className="p-1 hover:bg-[#A44A3F] rounded-lg cursor-pointer shrink-0"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+
+              <form onSubmit={handlePublicChatSubmit} className="flex items-center gap-3">
+                <div className="relative shrink-0">
+                  <img
+                    src={currentUser.avatarUrl}
+                    alt={currentUser.firstName}
+                    className="w-10 h-10 rounded-full object-cover ring-2 ring-stone-100 dark:ring-slate-700"
+                  />
                 </div>
 
-                {/* Simple, Mobile-Fitting Rows: Ranking (#1, #2...) + Avatar Photo + First Name + Crown/Badge Icon (Same as ΜΕΛΗ & LEADERBOARD) */}
-                <div className="divide-y divide-stone-100 dark:divide-slate-800">
-                  {rankedMembers.map((member, idx) => (
-                    <div
-                      key={member.id}
-                      onClick={() => setSelectedMemberProfile(member)}
-                      title={`${member.firstName} ${member.lastName}`}
-                      className="px-4 py-2.5 flex items-center justify-between hover:bg-[#F4D6C6]/35 dark:hover:bg-slate-800/70 transition-colors cursor-pointer"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <span
-                          className={`w-7 h-7 rounded-xl font-heading font-black text-xs flex items-center justify-center shrink-0 ${
-                            idx === 0
-                              ? 'bg-[#6B2F2F] text-[#F4D6C6] shadow-2xs'
-                              : idx === 1
-                              ? 'bg-[#A44A3F] text-[#F4D6C6]'
-                              : idx === 2
-                              ? 'bg-[#D88C72] text-[#6B2F2F]'
-                              : 'bg-stone-100 dark:bg-slate-800 text-stone-600 dark:text-stone-300'
-                          }`}
-                        >
-                          #{idx + 1}
-                        </span>
-                        <img
-                          src={member.avatarUrl}
-                          alt={member.firstName}
-                          className="w-9 h-9 rounded-full object-cover ring-2 ring-[#D88C72] shrink-0"
-                        />
-                        <span className="font-heading text-base font-bold text-stone-900 dark:text-stone-100 truncate">
-                          {member.firstName}
-                        </span>
-                      </div>
+                <input
+                  ref={composerInputRef}
+                  type="text"
+                  maxLength={200}
+                  value={chatText}
+                  onChange={(e) => setChatText(e.target.value.slice(0, 200))}
+                  placeholder={
+                    replyingToMsg
+                      ? `Απάντηση στον/στην ${replyingToMsg.firstName} (έως 200 χαρακτήρες)...`
+                      : 'Γράψτε κάτι στην παρέα... (έως 200 χαρακτήρες)'
+                  }
+                  className="flex-1 bg-transparent text-sm sm:text-base font-medium text-stone-800 dark:text-stone-100 placeholder-stone-400 focus:outline-none"
+                />
 
-                      <span className="text-sm shrink-0">
-                        {idx === 0 ? '👑' : member.gamification.icon}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Right / Bottom Column: Live Member Threaded Discussion Stream + Post Input */}
-            <div className="lg:col-span-8 flex flex-col justify-between">
-              {/* Threaded Messages Stream: Level 0 (Root), Level 1 (Slightly shifted right below), Level 2 (3rd level with distinct background color) */}
-              <div className="p-4 sm:p-5 max-h-96 overflow-y-auto space-y-3 bg-[#FFF7F2] dark:bg-slate-900/90">
-                {rootMessages.map((rootMsg) => {
-                  const level1Replies = getRepliesFor(rootMsg.id);
-                  const isSelectedForReply = replyingToMsg?.id === rootMsg.id;
-
-                  return (
-                    <div key={rootMsg.id} className="space-y-1.5">
-                      {/* Level 0: Root Post */}
-                      <div
-                        onClick={() => setReplyingToMsg(isSelectedForReply ? null : rootMsg)}
-                        title={language === 'el' ? 'Κλικ για απάντηση σε αυτό το σχόλιο' : 'Click to reply to this comment'}
-                        className={`p-3.5 rounded-2xl bg-white dark:bg-slate-800 border transition-all cursor-pointer shadow-2xs space-y-1.5 ${
-                          isSelectedForReply
-                            ? 'border-[#6B2F2F] ring-2 ring-[#A44A3F]/40'
-                            : 'border-[#D88C72]/70 dark:border-slate-700 hover:border-[#A44A3F]'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <img
-                              src={rootMsg.avatarUrl}
-                              alt={rootMsg.firstName}
-                              className="w-6 h-6 rounded-full object-cover ring-1 ring-[#A44A3F] shrink-0"
-                            />
-                            <span className="font-heading text-xs sm:text-sm font-bold text-[#6B2F2F] dark:text-[#F4D6C6]">
-                              {rootMsg.firstName}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-bold text-[#A44A3F] dark:text-[#D88C72] flex items-center gap-0.5">
-                              <CornerDownRight className="w-3 h-3" />
-                              <span>{language === 'el' ? 'Απάντηση' : 'Reply'}</span>
-                            </span>
-                            <span className="text-[10px] font-semibold text-[#A44A3F] dark:text-stone-400">
-                              {rootMsg.createdAt}
-                            </span>
-                          </div>
-                        </div>
-
-                        <p className="text-xs sm:text-sm text-stone-800 dark:text-stone-200 font-medium leading-relaxed break-words">
-                          {rootMsg.content}
-                        </p>
-                      </div>
-
-                      {/* Level 1 Replies: Shifted slightly to the right underneath */}
-                      {level1Replies.map((reply1) => {
-                        const level2Replies = getRepliesFor(reply1.id);
-                        const isReply1Selected = replyingToMsg?.id === reply1.id;
-
-                        return (
-                          <div key={reply1.id} className="space-y-1.5">
-                            <div
-                              onClick={() => setReplyingToMsg(isReply1Selected ? null : reply1)}
-                              title={language === 'el' ? 'Κλικ για απάντηση σε αυτό το σχόλιο' : 'Click to reply to this comment'}
-                              className={`ml-5 sm:ml-7 p-2.5 rounded-2xl bg-[#FDF1E8] dark:bg-slate-800/80 border-l-4 border border-[#D88C72] dark:border-slate-700 border-l-[#A44A3F] transition-all cursor-pointer space-y-1 ${
-                                isReply1Selected ? 'ring-2 ring-[#6B2F2F]' : 'hover:border-[#6B2F2F]'
-                              }`}
-                            >
-                              <div className="flex items-center justify-between gap-2">
-                                <div className="flex items-center gap-2">
-                                  <img
-                                    src={reply1.avatarUrl}
-                                    alt={reply1.firstName}
-                                    className="w-5 h-5 rounded-full object-cover ring-1 ring-[#A44A3F] shrink-0"
-                                  />
-                                  <span className="font-heading text-xs font-bold text-[#6B2F2F] dark:text-[#F4D6C6]">
-                                    {reply1.firstName}
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-[10px] font-bold text-[#A44A3F] flex items-center gap-0.5">
-                                    <CornerDownRight className="w-3 h-3" />
-                                    <span>{language === 'el' ? 'Απάντηση' : 'Reply'}</span>
-                                  </span>
-                                  <span className="text-[10px] font-semibold text-[#A44A3F] dark:text-stone-400">
-                                    {reply1.createdAt}
-                                  </span>
-                                </div>
-                              </div>
-
-                              <p className="text-xs sm:text-sm text-stone-800 dark:text-stone-200 font-medium leading-relaxed break-words">
-                                {reply1.content}
-                              </p>
-                            </div>
-
-                            {/* Level 2 (3rd Level) Replies: Slightly different background shade to show 3rd level depth */}
-                            {level2Replies.map((reply2) => (
-                              <div
-                                key={reply2.id}
-                                onClick={() => setReplyingToMsg(reply1)}
-                                className="ml-9 sm:ml-12 p-2.5 rounded-2xl bg-[#F4D6C6]/85 dark:bg-[#2d2222] border-l-4 border border-[#A44A3F]/60 border-l-[#6B2F2F] transition-all cursor-pointer space-y-1 shadow-2xs"
-                              >
-                                <div className="flex items-center justify-between gap-2">
-                                  <div className="flex items-center gap-2">
-                                    <img
-                                      src={reply2.avatarUrl}
-                                      alt={reply2.firstName}
-                                      className="w-5 h-5 rounded-full object-cover ring-1 ring-[#6B2F2F] shrink-0"
-                                    />
-                                    <span className="font-heading text-xs font-bold text-[#6B2F2F] dark:text-[#F4D6C6]">
-                                      {reply2.firstName}
-                                    </span>
-                                    <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-[#6B2F2F]/15 text-[#6B2F2F] dark:text-[#F4D6C6]">
-                                      3ο επίπεδο
-                                    </span>
-                                  </div>
-                                  <span className="text-[10px] font-semibold text-[#6B2F2F] dark:text-stone-400">
-                                    {reply2.createdAt}
-                                  </span>
-                                </div>
-
-                                <p className="text-xs sm:text-sm text-[#6B2F2F] dark:text-[#F4D6C6] font-medium leading-relaxed break-words">
-                                  {reply2.content}
-                                </p>
-                              </div>
-                            ))}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Open Input Bar for All Members Simultaneously (200 char limit + reply target banner) */}
-              <div className="p-3.5 bg-[#F4D6C6] dark:bg-[#243B35] border-t border-[#D88C72] dark:border-[#6B8E7B] space-y-2">
-                {replyingToMsg && (
-                  <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-[#6B2F2F] text-[#F4D6C6] text-xs font-bold">
-                    <span className="flex items-center gap-1.5 truncate">
-                      <CornerDownRight className="w-3.5 h-3.5 shrink-0" />
-                      <span className="truncate">
-                        {language === 'el'
-                          ? `Απάντηση στον/στην ${replyingToMsg.firstName}: «${replyingToMsg.content}»`
-                          : `Replying to ${replyingToMsg.firstName}: "${replyingToMsg.content}"`}
-                      </span>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setReplyingToMsg(null)}
-                      className="p-1 hover:bg-[#A44A3F] rounded-lg cursor-pointer shrink-0"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                )}
-
-                <form onSubmit={handlePublicChatSubmit} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                  <div className="flex items-center gap-2 flex-1 bg-white dark:bg-slate-900 px-3.5 py-2 rounded-xl border border-[#A44A3F]">
-                    <img
-                      src={currentUser.avatarUrl}
-                      alt={currentUser.firstName}
-                      className="w-6 h-6 rounded-full object-cover ring-1 ring-[#6B2F2F] shrink-0"
-                    />
-                    <span className="font-heading text-xs font-bold text-[#6B2F2F] dark:text-[#F4D6C6] shrink-0">
-                      {currentUser.firstName}:
-                    </span>
-                    <input
-                      type="text"
-                      maxLength={200}
-                      value={chatText}
-                      onChange={(e) => setChatText(e.target.value.slice(0, 200))}
-                      placeholder={
-                        replyingToMsg
-                          ? language === 'el'
-                            ? `Γράψτε την απάντησή σας στον/στην ${replyingToMsg.firstName} (έως 200 χαρακτήρες)...`
-                            : `Write your reply to ${replyingToMsg.firstName} (up to 200 chars)...`
-                          : language === 'el'
-                          ? 'Γράψτε μήνυμα στη ζωντανή συζήτηση (έως 200 χαρακτήρες)...'
-                          : 'Write a message in the live discussion (up to 200 chars)...'
-                      }
-                      className="w-full bg-transparent text-xs sm:text-sm font-medium text-stone-900 dark:text-white focus:outline-none"
-                    />
-                    <span className="text-[11px] font-mono font-bold text-[#A44A3F] shrink-0">
-                      {chatText.length}/200
-                    </span>
-                  </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-[11px] font-mono font-bold text-stone-400 hidden sm:inline">
+                    {chatText.length}/200
+                  </span>
                   <button
                     type="submit"
                     disabled={!chatText.trim() || isSendingChat}
-                    className="px-4 py-2.5 rounded-xl bg-[#6B2F2F] hover:bg-[#A44A3F] disabled:opacity-50 text-[#F4D6C6] font-heading text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 cursor-pointer shrink-0 shadow-xs"
+                    className="px-4 py-2 rounded-xl bg-[#6B2F2F] hover:bg-[#A44A3F] disabled:opacity-40 text-[#F4D6C6] font-heading text-xs sm:text-sm font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow-xs"
                   >
                     <Send className="w-3.5 h-3.5" />
-                    <span>{language === 'el' ? 'Ανάρτηση' : 'Post'}</span>
+                    <span>Ανάρτηση</span>
                   </button>
-                </form>
+                </div>
+              </form>
+            </div>
+
+            {/* Announcement Line & Filter Pills Row (Exactly like Skool screenshot) */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-center gap-2 text-xs sm:text-sm font-semibold text-stone-700 dark:text-stone-300 py-0.5">
+                <Trophy className="w-4 h-4 text-[#6B2F2F] dark:text-[#D88C72] shrink-0" />
+                <span>
+                  <strong className="font-extrabold text-stone-900 dark:text-white">Aeifaron Spots</strong> • Κάντε κλικ σε ανάρτηση για σχολιασμό (έως 3 επίπεδα)
+                </span>
+              </div>
+
+              {/* Filter Pills: All | 🆕 Νέα & Προτάσεις | 💬 Ανταλλαγή | 🏆 Leaderboard */}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFeedCategoryFilter('ALL');
+                      setCommunitySubTab('discussion');
+                    }}
+                    className={`px-4 py-2 rounded-full text-xs sm:text-sm font-bold transition-all cursor-pointer shrink-0 ${
+                      feedCategoryFilter === 'ALL' && communitySubTab === 'discussion'
+                        ? 'bg-stone-600 text-white shadow-xs'
+                        : 'bg-white dark:bg-slate-800 text-stone-600 dark:text-stone-300 border border-stone-200 dark:border-slate-700 hover:bg-stone-100'
+                    }`}
+                  >
+                    Όλα
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFeedCategoryFilter('🆕 Νέα & Προτάσεις');
+                      setCommunitySubTab('discussion');
+                    }}
+                    className={`px-4 py-2 rounded-full text-xs sm:text-sm font-bold transition-all cursor-pointer shrink-0 flex items-center gap-1.5 ${
+                      feedCategoryFilter === '🆕 Νέα & Προτάσεις' && communitySubTab === 'discussion'
+                        ? 'bg-stone-600 text-white shadow-xs'
+                        : 'bg-white dark:bg-slate-800 text-stone-600 dark:text-stone-300 border border-stone-200 dark:border-slate-700 hover:bg-stone-100'
+                    }`}
+                  >
+                    <span>🆕 Νέα &amp; Προτάσεις</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFeedCategoryFilter('💬 Ανταλλαγή');
+                      setCommunitySubTab('discussion');
+                    }}
+                    className={`px-4 py-2 rounded-full text-xs sm:text-sm font-bold transition-all cursor-pointer shrink-0 flex items-center gap-1.5 ${
+                      feedCategoryFilter === '💬 Ανταλλαγή' && communitySubTab === 'discussion'
+                        ? 'bg-stone-600 text-white shadow-xs'
+                        : 'bg-white dark:bg-slate-800 text-stone-600 dark:text-stone-300 border border-stone-200 dark:border-slate-700 hover:bg-stone-100'
+                    }`}
+                  >
+                    <span>💬 Ανταλλαγή</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFeedCategoryFilter('🏆 Leaderboard');
+                      setCommunitySubTab('leaderboard');
+                    }}
+                    className={`px-4 py-2 rounded-full text-xs sm:text-sm font-bold transition-all cursor-pointer shrink-0 flex items-center gap-1.5 ${
+                      communitySubTab === 'leaderboard'
+                        ? 'bg-[#6B2F2F] text-[#F4D6C6] shadow-xs'
+                        : 'bg-white dark:bg-slate-800 text-stone-600 dark:text-stone-300 border border-stone-200 dark:border-slate-700 hover:bg-stone-100'
+                    }`}
+                  >
+                    <span>🏆 Leaderboard Ranking</span>
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setCommunitySubTab(communitySubTab === 'leaderboard' ? 'discussion' : 'leaderboard')}
+                  title="Εναλλαγή Προβολής Leaderboard / Συζήτησης"
+                  className="w-9 h-9 rounded-full bg-white dark:bg-slate-800 border border-stone-200 dark:border-slate-700 flex items-center justify-center text-stone-600 dark:text-stone-300 hover:bg-stone-100 shrink-0 cursor-pointer"
+                >
+                  <SlidersHorizontal className="w-4 h-4" />
+                </button>
               </div>
             </div>
+
+            {/* Content Layout: Compact Leaderboard Ranking + Skool-Style Threaded Feed Cards */}
+            {communitySubTab === 'members' ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+                {rankedMembers.map((member, idx) => (
+                  <div
+                    key={member.id}
+                    onClick={() => setSelectedMemberProfile(member)}
+                    className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-stone-200 dark:border-slate-700 hover:border-[#6B2F2F] transition-all cursor-pointer flex items-center gap-3.5 shadow-2xs"
+                  >
+                    <div className="relative shrink-0">
+                      <img
+                        src={member.avatarUrl}
+                        alt={member.firstName}
+                        className="w-12 h-12 rounded-full object-cover ring-2 ring-[#D88C72]"
+                      />
+                      <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-black flex items-center justify-center border-2 border-white dark:border-slate-800">
+                        {member.gamification.level}
+                      </span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-heading text-base font-bold text-stone-900 dark:text-white truncate">
+                          {member.firstName} {member.lastName}
+                        </span>
+                        <span>{idx === 0 ? '👑' : member.gamification.icon}</span>
+                      </div>
+                      <p className="text-xs font-semibold text-[#6B2F2F] dark:text-[#F4D6C6] truncate">
+                        {member.gamification.titleEl}
+                      </p>
+                      <p className="text-[11px] text-stone-400 font-bold">
+                        Θέση #{idx + 1} • {member.xp} XP
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+                
+                {/* Compact Leaderboard Ranking Card (Shown on Leaderboard tab on mobile, or side-by-side on desktop) */}
+                <div
+                  className={`${
+                    communitySubTab === 'leaderboard' ? 'block lg:col-span-12 max-w-lg mx-auto w-full' : 'block lg:col-span-4'
+                  }`}
+                >
+                  <div className="rounded-3xl bg-white dark:bg-slate-900 border-2 border-[#6B2F2F] dark:border-[#D88C72] shadow-md overflow-hidden">
+                    <div className="px-4 py-3 bg-[#6B2F2F] text-[#F4D6C6] flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Trophy className="w-4 h-4 text-[#D88C72]" />
+                        <span className="font-heading text-base font-bold tracking-wide">
+                          Leaderboard Ranking
+                        </span>
+                      </div>
+                      <span className="text-[11px] font-bold text-[#F4D6C6]/80">
+                        Κατάταξη Μελών
+                      </span>
+                    </div>
+
+                    <div className="divide-y divide-stone-100 dark:divide-slate-800">
+                      {rankedMembers.map((member, idx) => (
+                        <div
+                          key={member.id}
+                          onClick={() => setSelectedMemberProfile(member)}
+                          title={`${member.firstName} ${member.lastName} • ${member.gamification.titleEl}`}
+                          className="px-4 py-2.5 flex items-center justify-between hover:bg-[#F4D6C6]/35 dark:hover:bg-slate-800/70 transition-colors cursor-pointer"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span
+                              className={`w-7 h-7 rounded-xl font-heading font-black text-xs flex items-center justify-center shrink-0 ${
+                                idx === 0
+                                  ? 'bg-[#6B2F2F] text-[#F4D6C6] shadow-2xs'
+                                  : idx === 1
+                                  ? 'bg-[#A44A3F] text-[#F4D6C6]'
+                                  : idx === 2
+                                  ? 'bg-[#D88C72] text-[#6B2F2F]'
+                                  : 'bg-stone-100 dark:bg-slate-800 text-stone-600 dark:text-stone-300'
+                              }`}
+                            >
+                              #{idx + 1}
+                            </span>
+                            <div className="relative shrink-0">
+                              <img
+                                src={member.avatarUrl}
+                                alt={member.firstName}
+                                className="w-9 h-9 rounded-full object-cover ring-2 ring-[#D88C72]"
+                              />
+                              <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-blue-600 text-white text-[9px] font-black flex items-center justify-center border border-white dark:border-slate-900">
+                                {member.gamification.level}
+                              </span>
+                            </div>
+                            <div className="min-w-0">
+                              <span className="font-heading text-base font-bold text-stone-900 dark:text-stone-100 truncate block leading-tight">
+                                {member.firstName}
+                              </span>
+                              <span className="text-[10px] font-bold text-stone-500 dark:text-stone-400 truncate block">
+                                {member.gamification.titleEl}
+                              </span>
+                            </div>
+                          </div>
+
+                          <span className="text-sm shrink-0">
+                            {idx === 0 ? '👑' : member.gamification.icon}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Skool-Style Community Feed Post Cards with 3-Level Threaded Replies */}
+                {communitySubTab === 'discussion' && (
+                  <div className="lg:col-span-8 space-y-3.5 w-full">
+                    {rootMessages
+                      .filter((m) =>
+                        feedCategoryFilter === 'ALL' || feedCategoryFilter === '🏆 Leaderboard'
+                          ? true
+                          : (m.categoryTag || '💬 Ανταλλαγή') === feedCategoryFilter
+                      )
+                      .map((rootMsg, postIdx) => {
+                        const level1Replies = getRepliesFor(rootMsg.id);
+                        const allCommentsCount =
+                          level1Replies.length +
+                          level1Replies.reduce((acc, r1) => acc + getRepliesFor(r1.id).length, 0);
+                        const isSelectedForReply = replyingToMsg?.id === rootMsg.id;
+                        const authorProfile =
+                          rankedMembers.find((u) => u.id === rootMsg.userId) || rankedMembers[0];
+                        const levelNumber = authorProfile?.gamification?.level || 1;
+                        const isLiked = !!likedPostIds[rootMsg.id];
+                        const displayLikes = (rootMsg.likesCount || 14) + (isLiked ? 1 : 0);
+                        const thumbUrl =
+                          rootMsg.thumbnailUrl ||
+                          spots[postIdx % Math.max(1, spots.length)]?.coverImageUrl;
+
+                        return (
+                          <div
+                            key={rootMsg.id}
+                            className="rounded-2xl bg-white dark:bg-slate-800 border border-stone-200/90 dark:border-slate-700 shadow-xs overflow-hidden transition-all"
+                          >
+                            {/* Root Post Card (Skool Community Post Layout) */}
+                            <div
+                              onClick={() => {
+                                setReplyingToMsg(isSelectedForReply ? null : rootMsg);
+                                composerInputRef.current?.focus();
+                              }}
+                              title="Κάντε κλικ για να απαντήσετε σε αυτή την ανάρτηση"
+                              className={`p-4 sm:p-5 cursor-pointer transition-colors ${
+                                isSelectedForReply
+                                  ? 'bg-[#FFF7F2] dark:bg-slate-800/90 ring-2 ring-inset ring-[#6B2F2F]'
+                                  : 'hover:bg-stone-50/70 dark:hover:bg-slate-800/60'
+                              }`}
+                            >
+                              {/* Top Author Row: Avatar with Blue Level Badge + Full Name + Icons + Pinned */}
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex items-center gap-3">
+                                  <div
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (authorProfile) setSelectedMemberProfile(authorProfile);
+                                    }}
+                                    className="relative shrink-0 cursor-pointer"
+                                  >
+                                    <img
+                                      src={rootMsg.avatarUrl}
+                                      alt={rootMsg.firstName}
+                                      className="w-11 h-11 rounded-full object-cover ring-1 ring-stone-200 dark:ring-slate-600"
+                                    />
+                                    {/* Skool-style Blue Level Badge on bottom-right of Avatar */}
+                                    <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-blue-600 text-white text-[11px] font-black flex items-center justify-center border-2 border-white dark:border-slate-800 shadow-2xs">
+                                      {levelNumber}
+                                    </span>
+                                  </div>
+
+                                  <div>
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span className="font-heading text-base font-bold text-stone-900 dark:text-white leading-tight">
+                                        {rootMsg.firstName} {rootMsg.lastName || authorProfile?.lastName || ''}
+                                      </span>
+                                      <span className="text-sm">🍀</span>
+                                      <span className="text-sm">🔥</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 text-xs font-semibold text-stone-400 mt-0.5">
+                                      <span>{rootMsg.createdAt}</span>
+                                      <span>•</span>
+                                      <span className="text-stone-500 dark:text-stone-300">
+                                        {rootMsg.categoryTag || '💬 Ανταλλαγή'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {(rootMsg.pinned || postIdx < 2) && (
+                                  <div className="flex items-center gap-1 text-xs font-bold text-stone-500 dark:text-stone-400 shrink-0">
+                                    <Pin className="w-3.5 h-3.5 text-stone-700 dark:text-stone-300 rotate-45" />
+                                    <span>Καρφιτσωμένο</span>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Middle Content Row: Blue Dot + Bold Title + Body Text on Left, Square Thumbnail on Right */}
+                              <div className="mt-3.5 flex items-start justify-between gap-4">
+                                <div className="flex-1 min-w-0 space-y-1.5">
+                                  <div className="flex items-center gap-2">
+                                    <span className="w-2.5 h-2.5 rounded-full bg-blue-600 shrink-0" />
+                                    <h4 className="font-heading text-base sm:text-lg font-extrabold text-stone-900 dark:text-white leading-snug line-clamp-1">
+                                      {rootMsg.title || rootMsg.content}
+                                    </h4>
+                                  </div>
+                                  <p className="text-sm sm:text-base text-stone-700 dark:text-stone-200 font-normal leading-relaxed break-words">
+                                    {rootMsg.content}
+                                  </p>
+                                </div>
+
+                                {thumbUrl && (
+                                  <img
+                                    src={thumbUrl}
+                                    alt=""
+                                    className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover shrink-0 border border-stone-200 dark:border-slate-700 shadow-2xs"
+                                  />
+                                )}
+                              </div>
+
+                              {/* Bottom Engagement Bar: ThumbsUp Count + Comment Count + "Νέο σχόλιο • Απάντηση" */}
+                              <div className="mt-4 pt-2.5 border-t border-stone-100 dark:border-slate-700/60 flex items-center justify-between gap-4 text-xs font-bold text-stone-500 dark:text-stone-400">
+                                <div className="flex items-center gap-5">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setLikedPostIds((prev) => ({
+                                        ...prev,
+                                        [rootMsg.id]: !prev[rootMsg.id]
+                                      }));
+                                    }}
+                                    className={`flex items-center gap-1.5 cursor-pointer transition-colors ${
+                                      isLiked
+                                        ? 'text-blue-600 dark:text-blue-400 font-extrabold'
+                                        : 'hover:text-stone-800 dark:hover:text-white'
+                                    }`}
+                                  >
+                                    <ThumbsUp className="w-4 h-4" />
+                                    <span>{displayLikes}</span>
+                                  </button>
+
+                                  <div className="flex items-center gap-1.5 hover:text-stone-800 dark:hover:text-white">
+                                    <MessageSquare className="w-4 h-4" />
+                                    <span>{allCommentsCount}</span>
+                                  </div>
+                                </div>
+
+                                <span className="text-blue-600 dark:text-blue-400 font-extrabold hover:underline flex items-center gap-1">
+                                  <span>
+                                    {allCommentsCount > 0
+                                      ? 'Νέο σχόλιο • Κλικ για απάντηση'
+                                      : 'Κλικ για πρώτο σχόλιο'}
+                                  </span>
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Threaded Replies Inside Card: Level 1 (shifted slightly right below) & Level 2 (3rd level with distinct background color) */}
+                            {level1Replies.length > 0 && (
+                              <div className="px-4 pb-4 pt-2 bg-stone-50/70 dark:bg-slate-900/50 border-t border-stone-100 dark:border-slate-700/70 space-y-2">
+                                {level1Replies.map((reply1) => {
+                                  const level2Replies = getRepliesFor(reply1.id);
+                                  const isReply1Selected = replyingToMsg?.id === reply1.id;
+
+                                  return (
+                                    <div key={reply1.id} className="space-y-1.5">
+                                      {/* Level 1 Reply: Shifted slightly to the right underneath */}
+                                      <div
+                                        onClick={() => {
+                                          setReplyingToMsg(isReply1Selected ? null : reply1);
+                                          composerInputRef.current?.focus();
+                                        }}
+                                        title="Κλικ για απάντηση σε αυτό το σχόλιο (3ο επίπεδο)"
+                                        className={`ml-4 sm:ml-6 p-3 rounded-2xl bg-[#FDF1E8] dark:bg-slate-800 border-l-4 border border-[#D88C72] dark:border-slate-700 border-l-[#A44A3F] transition-all cursor-pointer space-y-1 ${
+                                          isReply1Selected ? 'ring-2 ring-[#6B2F2F]' : 'hover:border-[#6B2F2F]'
+                                        }`}
+                                      >
+                                        <div className="flex items-center justify-between gap-2">
+                                          <div className="flex items-center gap-2">
+                                            <img
+                                              src={reply1.avatarUrl}
+                                              alt={reply1.firstName}
+                                              className="w-6 h-6 rounded-full object-cover ring-1 ring-[#A44A3F] shrink-0"
+                                            />
+                                            <span className="font-heading text-xs sm:text-sm font-bold text-[#6B2F2F] dark:text-[#F4D6C6]">
+                                              {reply1.firstName}
+                                            </span>
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 flex items-center gap-0.5">
+                                              <CornerDownRight className="w-3 h-3" />
+                                              <span>Απάντηση</span>
+                                            </span>
+                                            <span className="text-[10px] font-semibold text-stone-400">
+                                              {reply1.createdAt}
+                                            </span>
+                                          </div>
+                                        </div>
+
+                                        <p className="text-xs sm:text-sm text-stone-800 dark:text-stone-200 font-medium leading-relaxed break-words">
+                                          {reply1.content}
+                                        </p>
+                                      </div>
+
+                                      {/* Level 2 (3rd Level) Replies: Shifted further right + distinct background shade */}
+                                      {level2Replies.map((reply2) => (
+                                        <div
+                                          key={reply2.id}
+                                          onClick={() => {
+                                            setReplyingToMsg(reply1);
+                                            composerInputRef.current?.focus();
+                                          }}
+                                          className="ml-8 sm:ml-12 p-3 rounded-2xl bg-[#F4D6C6]/90 dark:bg-[#2d2222] border-l-4 border border-[#A44A3F]/60 border-l-[#6B2F2F] transition-all cursor-pointer space-y-1 shadow-2xs"
+                                        >
+                                          <div className="flex items-center justify-between gap-2">
+                                            <div className="flex items-center gap-2">
+                                              <img
+                                                src={reply2.avatarUrl}
+                                                alt={reply2.firstName}
+                                                className="w-5 h-5 rounded-full object-cover ring-1 ring-[#6B2F2F] shrink-0"
+                                              />
+                                              <span className="font-heading text-xs font-bold text-[#6B2F2F] dark:text-[#F4D6C6]">
+                                                {reply2.firstName}
+                                              </span>
+                                              <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-[#6B2F2F]/15 text-[#6B2F2F] dark:text-[#F4D6C6]">
+                                                3ο επίπεδο
+                                              </span>
+                                            </div>
+                                            <span className="text-[10px] font-semibold text-[#6B2F2F] dark:text-stone-400">
+                                              {reply2.createdAt}
+                                            </span>
+                                          </div>
+
+                                          <p className="text-xs sm:text-sm text-[#6B2F2F] dark:text-[#F4D6C6] font-medium leading-relaxed break-words">
+                                            {reply2.content}
+                                          </p>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
+
+              </div>
+            )}
 
           </div>
         </div>
