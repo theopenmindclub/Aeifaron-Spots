@@ -233,8 +233,8 @@ export const CommunityView: React.FC = () => {
     },
     {
       icon: '🥇',
-      levelName: 'Επίπεδο 3 • ΕΙΜΑΙ ΑΠΟΛΑΥΣΗ (food expert • 3 Spots)',
-      levelNameEn: 'Level 3 • PURE DELIGHT (food expert • 3 Spots)',
+      levelName: 'Επίπεδο 3 • ΚΑΛΟΦΑΓΑΣ/ΟΥ (Food Expert • 3 Spots)',
+      levelNameEn: 'Level 3 • ΚΑΛΟΦΑΓΑΣ/ΟΥ (Food Expert • 3 Spots)',
       reward:
         'Δικαιούται κέρασμα specialty καφέ ή παγωτού από μέλος της κοινότητας (με προσωπική αποστολή χρημάτων)!',
       rewardEn:
@@ -243,8 +243,8 @@ export const CommunityView: React.FC = () => {
     },
     {
       icon: '🥈',
-      levelName: 'Επίπεδο 2 • ΜΕΡΑΚΛΗΣ / ΜΕΡΑΚΛΙΝΑ (Food lover • 2 Spots)',
-      levelNameEn: 'Level 2 • MERAKLIS (Food lover • 2 Spots)',
+      levelName: 'Επίπεδο 2 • ΜΕΡΑΚΛΗΣ / ΜΕΡΑΚΛΙΝΑ (Food Lover • 2 Spots)',
+      levelNameEn: 'Level 2 • ΜΕΡΑΚΛΗΣ / ΜΕΡΑΚΛΙΝΑ (Food Lover • 2 Spots)',
       reward:
         'Τιμητικό Σήμα Μερακλή της Παρέας & συμμετοχή στις κληρώσεις κερασμάτων της κοινότητας!',
       rewardEn:
@@ -253,8 +253,8 @@ export const CommunityView: React.FC = () => {
     },
     {
       icon: '🥉',
-      levelName: 'Επίπεδο 1 • ΕΝΕΡΓΟΠΟΙΗΘΗΚΑ ΠΑΙΔΙΑ (scout first love • 1 Spot)',
-      levelNameEn: 'Level 1 • ACTIVATED SCOUT (scout first love • 1 Spot)',
+      levelName: 'Επίπεδο 1 • ΠΑΜΕ ΠΑΙΔΙΑ (First Lover • 1 Spot)',
+      levelNameEn: 'Level 1 • ΠΑΜΕ ΠΑΙΔΙΑ (First Lover • 1 Spot)',
       reward:
         'Επίσημη είσοδος στο Leaderboard & δικαίωμα υποβολής προτάσεων για τα έπαθλα της παρέας!',
       rewardEn:
@@ -310,29 +310,29 @@ export const CommunityView: React.FC = () => {
           <Crown className="w-6 h-6 text-[#A44A3F] dark:text-[#F4D6C6]" />
           <span>
             {language === 'el'
-              ? 'Τίτλοι Γαστρονομικής Έντιμης Προσφοράς Προτάσεων:'
+              ? 'Τίτλοι Γαστρονομικής Προσφοράς:'
               : 'Titles of Culinary Contribution:'}
           </span>
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 text-center">
           <div className="p-4 rounded-2xl bg-stone-50 dark:bg-slate-800 border border-stone-200 dark:border-slate-700">
             <span className="text-2xl mb-1 block">🥉</span>
-            <div className="font-heading text-base font-bold text-blue-700 dark:text-blue-400">ΕΝΕΡΓΟΠΟΙΗΘΗΚΑ ΠΑΙΔΙΑ</div>
-            <div className="text-xs font-extrabold text-stone-700 dark:text-stone-300 mt-0.5">scout first love</div>
+            <div className="font-heading text-base font-bold text-blue-700 dark:text-blue-400">ΠΑΜΕ ΠΑΙΔΙΑ</div>
+            <div className="text-xs font-extrabold text-stone-700 dark:text-stone-300 mt-0.5">First Lover</div>
             <div className="text-[11px] text-stone-500 mt-1">1 Καταχώρηση Spot</div>
           </div>
 
           <div className="p-4 rounded-2xl bg-stone-50 dark:bg-slate-800 border border-stone-200 dark:border-slate-700">
             <span className="text-2xl mb-1 block">🥈</span>
             <div className="font-heading text-base font-bold text-orange-700 dark:text-orange-400">ΜΕΡΑΚΛΗΣ / ΜΕΡΑΚΛΙΝΑ</div>
-            <div className="text-xs font-extrabold text-stone-700 dark:text-stone-300 mt-0.5">Food lover</div>
+            <div className="text-xs font-extrabold text-stone-700 dark:text-stone-300 mt-0.5">Food Lover</div>
             <div className="text-[11px] text-stone-500 mt-1">2 Καταχωρήσεις Spots</div>
           </div>
 
           <div className="p-4 rounded-2xl bg-stone-50 dark:bg-slate-800 border border-stone-200 dark:border-slate-700">
             <span className="text-2xl mb-1 block">🥇</span>
-            <div className="font-heading text-base font-bold text-emerald-700 dark:text-emerald-400">ΕΙΜΑΙ ΑΠΟΛΑΥΣΗ</div>
-            <div className="text-xs font-extrabold text-stone-700 dark:text-stone-300 mt-0.5">food expert</div>
+            <div className="font-heading text-base font-bold text-emerald-700 dark:text-emerald-400">ΚΑΛΟΦΑΓΑΣ/ΟΥ</div>
+            <div className="text-xs font-extrabold text-stone-700 dark:text-stone-300 mt-0.5">Food Expert</div>
             <div className="text-[11px] text-stone-500 mt-1">3 Καταχωρήσεις Spots</div>
           </div>
 
@@ -451,7 +451,7 @@ export const CommunityView: React.FC = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {leaderboardUsers.map((user, idx) => {
-            const badgeConfig = BADGE_TRANSLATIONS[user.currentBadge] || BADGE_TRANSLATIONS['ΕΝΕΡΓΟΠΟΙΗΘΗΚΑ ΠΑΙΔΙΑ'];
+            const badgeConfig = BADGE_TRANSLATIONS[user.currentBadge] || BADGE_TRANSLATIONS['ΠΑΜΕ ΠΑΙΔΙΑ'];
             const topFoods = user.topFoods && user.topFoods.length === 3
               ? user.topFoods
               : [
@@ -829,9 +829,9 @@ export const CommunityView: React.FC = () => {
                           <option value="ΜΑΣΤΕΡΜΑΙΝΤ (6+ Spots)">💎 ΜΑΣΤΕΡΜΑΙΝΤ (6+ Spots)</option>
                           <option value="ΜΑΣΤΕΡ (5 Spots)">👑 ΜΑΣΤΕΡ (5 Spots)</option>
                           <option value="ΦΙΛΟΣ ΚΙ ΑΔΕΡΦΟΣ/Η (4 Spots)">⭐ ΦΙΛΟΣ ΚΙ ΑΔΕΡΦΟΣ/Η (4 Spots)</option>
-                          <option value="ΕΙΜΑΙ ΑΠΟΛΑΥΣΗ (3 Spots)">🥇 ΕΙΜΑΙ ΑΠΟΛΑΥΣΗ (3 Spots)</option>
+                          <option value="ΚΑΛΟΦΑΓΑΣ/ΟΥ (3 Spots)">🥇 ΚΑΛΟΦΑΓΑΣ/ΟΥ (3 Spots)</option>
                           <option value="ΜΕΡΑΚΛΗΣ / ΜΕΡΑΚΛΙΝΑ (2 Spots)">🥈 ΜΕΡΑΚΛΗΣ / ΜΕΡΑΚΛΙΝΑ (2 Spots)</option>
-                          <option value="ΕΝΕΡΓΟΠΟΙΗΘΗΚΑ ΠΑΙΔΙΑ (1 Spot)">🥉 ΕΝΕΡΓΟΠΟΙΗΘΗΚΑ ΠΑΙΔΙΑ (1 Spot)</option>
+                          <option value="ΠΑΜΕ ΠΑΙΔΙΑ (1 Spot)">🥉 ΠΑΜΕ ΠΑΙΔΙΑ (1 Spot)</option>
                           <option value="Όλα τα Επίπεδα">🏆 Όλα τα Επίπεδα</option>
                         </select>
                       </div>

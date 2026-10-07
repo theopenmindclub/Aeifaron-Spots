@@ -37,6 +37,7 @@ export const SpotCard: React.FC<SpotCardProps> = ({ spot }) => {
     : spot.signatureDishes;
 
   const isBeach = spot.category === 'Παραλίες';
+  const isLocation = spot.category === 'Τοποθεσίες';
 
   const handleViberShare = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -68,22 +69,26 @@ export const SpotCard: React.FC<SpotCardProps> = ({ spot }) => {
         }`}
       >
         
-        {/* Top Card Header Banner: Food spot (#6B2F2F #A44A3F #D88C72 #F4D6C6) or Beach (#FF6B54 & #14B8A6) */}
+        {/* Top Card Header Banner: Food spot (#6B2F2F #A44A3F #D88C72 #F4D6C6), Beach (#FF6B54 & #14B8A6), or Location (#243B35 & #6B8E7B) */}
         <div
           className={`px-4 py-2.5 flex items-center justify-between text-xs font-extrabold uppercase tracking-wider border-b ${
             isBeach
               ? 'bg-[#14B8A6] text-white border-[#FF6B54]'
+              : isLocation
+              ? 'bg-[#243B35] text-[#F1E9D2] border-[#6B8E7B]'
               : 'bg-[#6B2F2F] text-[#F4D6C6] border-[#A44A3F]'
           }`}
         >
           <span className="font-heading text-sm font-black tracking-wider flex items-center gap-1.5">
             <span>{categoryConfig.icon}</span>
-            <span>{isBeach ? (language === 'el' ? 'ΠΑΡΑΛΙΕΣ' : 'BEACH SPOT') : 'food spot'}</span>
+            <span>{isBeach ? 'ΠΑΡΑΛΙΕΣ' : isLocation ? 'ΤΟΠΟΘΕΣΙΕΣ' : 'food spot'}</span>
           </span>
           <span
             className={`px-2.5 py-0.5 rounded-md font-heading text-xs font-bold ${
               isBeach
                 ? 'bg-[#FF6B54] text-white'
+                : isLocation
+                ? 'bg-[#6B8E7B] text-[#CDFF9B]'
                 : 'bg-[#D88C72] text-[#6B2F2F]'
             }`}
           >
@@ -169,12 +174,14 @@ export const SpotCard: React.FC<SpotCardProps> = ({ spot }) => {
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-extrabold shadow-md ${
                 isBeach
                   ? 'bg-[#14B8A6] text-white border border-[#FF6B54]'
+                  : isLocation
+                  ? 'bg-[#243B35] text-[#CDFF9B] border border-[#6B8E7B]'
                   : 'bg-[#6B2F2F] text-[#F4D6C6] border border-[#D88C72]'
               }`}
             >
               <span>{categoryConfig.icon}</span>
               <span className="truncate max-w-[140px]">
-                {isBeach ? 'Παραλίες' : 'food spot'}
+                {isBeach ? 'Παραλίες' : isLocation ? 'Τοποθεσίες' : 'food spot'}
               </span>
             </div>
 

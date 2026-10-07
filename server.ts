@@ -191,7 +191,7 @@ app.post("/api/users/register", (req, res) => {
             "Παραδοσιακή πίτα στον ξυλόφουρνο",
             "Gelato Φιστίκι Αιγίνης ΠΟΠ"
           ],
-    badge: "ΕΝΕΡΓΟΠΟΙΗΘΗΚΑ ΠΑΙΔΙΑ",
+    badge: "ΠΑΜΕ ΠΑΙΔΙΑ",
     role: "member",
     favoriteRegions: ["Athens & Attica"],
     spotsSubmittedCount: 1,

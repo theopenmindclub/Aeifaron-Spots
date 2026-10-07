@@ -15,6 +15,7 @@ import { StreetViewModal } from './StreetViewModal';
 
 const CATEGORIES: SpotCategory[] = [
   'Παραλίες',
+  'Τοποθεσίες',
   'Εκδρομές',
   'Μηχανάδες',
   'Gelato',

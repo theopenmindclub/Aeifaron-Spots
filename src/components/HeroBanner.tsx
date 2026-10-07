@@ -262,6 +262,19 @@ export const HeroBanner: React.FC = () => {
               <span>{language === 'el' ? CATEGORY_TRANSLATIONS['Παραλίες'].el : CATEGORY_TRANSLATIONS['Παραλίες'].en}</span>
             </button>
 
+            {/* Τοποθεσίες Button */}
+            <button
+              onClick={() => setSelectedCategory(selectedCategory === 'Τοποθεσίες' ? 'ALL' : 'Τοποθεσίες')}
+              className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer border ${
+                selectedCategory === 'Τοποθεσίες'
+                  ? 'bg-[#243B35] text-[#CDFF9B] border-[#CDFF9B] ring-2 ring-[#6B8E7B] shadow-md'
+                  : 'bg-[#6B8E7B] text-[#F1E9D2] border-[#243B35] hover:bg-[#243B35]'
+              }`}
+            >
+              <span>{CATEGORY_TRANSLATIONS['Τοποθεσίες'].icon}</span>
+              <span>{language === 'el' ? CATEGORY_TRANSLATIONS['Τοποθεσίες'].el : CATEGORY_TRANSLATIONS['Τοποθεσίες'].en}</span>
+            </button>
+
             {/* Drop-down Menu for the 12 Categories */}
             <div className="relative min-w-[250px] sm:min-w-[300px]">
               <select
@@ -331,6 +344,7 @@ export const HeroBanner: React.FC = () => {
             const displayTitle = language === 'el' && spot.titleEl ? spot.titleEl : spot.title;
             const catConfig = CATEGORY_TRANSLATIONS[spot.category] || { icon: '📍', el: spot.category };
             const isBeach = spot.category === 'Παραλίες';
+            const isLocation = spot.category === 'Τοποθεσίες';
             
             return (
               <div
@@ -340,6 +354,8 @@ export const HeroBanner: React.FC = () => {
                 className={`relative w-36 sm:w-44 aspect-square shrink-0 rounded-[10px] overflow-hidden cursor-pointer shadow-md hover:shadow-xl hover:scale-[1.03] transition-all duration-200 border-2 group ${
                   isBeach
                     ? 'border-[#FF6B54] bg-[#14B8A6]'
+                    : isLocation
+                    ? 'border-[#6B8E7B] bg-[#243B35]'
                     : 'border-[#6B2F2F] bg-[#6B2F2F]'
                 }`}
               >
@@ -355,15 +371,19 @@ export const HeroBanner: React.FC = () => {
                       className={`px-1.5 py-0.5 rounded-md text-[10px] font-extrabold ${
                         isBeach
                           ? 'bg-[#14B8A6] text-white'
+                          : isLocation
+                          ? 'bg-[#243B35] text-[#CDFF9B]'
                           : 'bg-[#6B2F2F] text-[#F4D6C6]'
                       }`}
                     >
-                      {catConfig.icon} {isBeach ? (language === 'el' ? 'Παραλία' : 'Beach') : 'food spot'}
+                      {catConfig.icon} {isBeach ? 'Παραλία' : isLocation ? 'Τοποθεσία' : 'food spot'}
                     </span>
                     <span
                       className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-md font-black text-[10px] ${
                         isBeach
                           ? 'bg-[#FF6B54] text-white'
+                          : isLocation
+                          ? 'bg-[#6B8E7B] text-[#F1E9D2]'
                           : 'bg-[#A44A3F] text-[#F4D6C6]'
                       }`}
                     >
@@ -374,7 +394,7 @@ export const HeroBanner: React.FC = () => {
                     <h4 className="font-heading text-xs sm:text-sm font-bold leading-tight line-clamp-2 drop-shadow-sm">
                       {displayTitle}
                     </h4>
-                    <p className={`text-[10px] font-bold truncate mt-0.5 ${isBeach ? 'text-[#FF6B54]' : 'text-[#F4D6C6]'}`}>
+                    <p className={`text-[10px] font-bold truncate mt-0.5 ${isBeach ? 'text-[#FF6B54]' : isLocation ? 'text-[#CDFF9B]' : 'text-[#F4D6C6]'}`}>
                       {spot.author.firstName} • {spot.priceLevel}
                     </p>
                   </div>

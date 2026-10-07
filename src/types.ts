@@ -1,8 +1,10 @@
 export type UserBadge = 
   | 'Αρχάριο Μέλος'
+  | 'ΠΑΜΕ ΠΑΙΔΙΑ'
   | 'ΕΝΕΡΓΟΠΟΙΗΘΗΚΑ ΠΑΙΔΙΑ'
   | 'ΕΝΕΡΓΟ ΜΕΛΟΣ'
   | 'ΜΕΡΑΚΛΗΣ/ΜΕΡΑΚΛΙΝΑ'
+  | 'ΚΑΛΟΦΑΓΑΣ/ΟΥ'
   | 'ΕΙΜΑΙ ΑΠΟΛΑΥΣΗ'
   | 'ΑΠΟΛΑΥΣΤΙΚΗ ΖΩΗ'
   | 'ΦΙΛΟΣ ΚΙ ΑΔΕΡΦΟΣ/Η'
@@ -32,9 +34,9 @@ export function getGamificationBadge(spotsCount: number): UserBadge {
   if (spotsCount >= 6) return 'ΜΑΣΤΕΡΜΑΙΝΤ';
   if (spotsCount === 5) return 'ΜΑΣΤΕΡ';
   if (spotsCount === 4) return 'ΦΙΛΟΣ ΚΙ ΑΔΕΡΦΟΣ/Η';
-  if (spotsCount === 3) return 'ΕΙΜΑΙ ΑΠΟΛΑΥΣΗ';
+  if (spotsCount === 3) return 'ΚΑΛΟΦΑΓΑΣ/ΟΥ';
   if (spotsCount === 2) return 'ΜΕΡΑΚΛΗΣ/ΜΕΡΑΚΛΙΝΑ';
-  if (spotsCount === 1) return 'ΕΝΕΡΓΟΠΟΙΗΘΗΚΑ ΠΑΙΔΙΑ';
+  if (spotsCount === 1) return 'ΠΑΜΕ ΠΑΙΔΙΑ';
   return 'Αρχάριο Μέλος';
 }
 
@@ -79,9 +81,9 @@ export function getGamificationInfo(spotsCount: number, reviewsCount: number = 0
   if (spotsCount === 3) {
     return {
       level: 3,
-      badge: 'ΕΙΜΑΙ ΑΠΟΛΑΥΣΗ',
-      titleEl: 'ΕΙΜΑΙ ΑΠΟΛΑΥΣΗ • food expert',
-      titleEn: 'PURE DELIGHT • food expert',
+      badge: 'ΚΑΛΟΦΑΓΑΣ/ΟΥ',
+      titleEl: 'ΚΑΛΟΦΑΓΑΣ/ΟΥ • Food Expert',
+      titleEn: 'ΚΑΛΟΦΑΓΑΣ/ΟΥ • Food Expert',
       xp,
       nextLevelXp: 400,
       minSpots: 3,
@@ -92,8 +94,8 @@ export function getGamificationInfo(spotsCount: number, reviewsCount: number = 0
     return {
       level: 2,
       badge: 'ΜΕΡΑΚΛΗΣ/ΜΕΡΑΚΛΙΝΑ',
-      titleEl: 'ΜΕΡΑΚΛΗΣ / ΜΕΡΑΚΛΙΝΑ • Food lover',
-      titleEn: 'MERAKLIS • Food lover',
+      titleEl: 'ΜΕΡΑΚΛΗΣ / ΜΕΡΑΚΛΙΝΑ • Food Lover',
+      titleEn: 'ΜΕΡΑΚΛΗΣ / ΜΕΡΑΚΛΙΝΑ • Food Lover',
       xp,
       nextLevelXp: 300,
       minSpots: 2,
@@ -103,9 +105,9 @@ export function getGamificationInfo(spotsCount: number, reviewsCount: number = 0
   if (spotsCount === 1) {
     return {
       level: 1,
-      badge: 'ΕΝΕΡΓΟΠΟΙΗΘΗΚΑ ΠΑΙΔΙΑ',
-      titleEl: 'ΕΝΕΡΓΟΠΟΙΗΘΗΚΑ ΠΑΙΔΙΑ • scout first love',
-      titleEn: 'ACTIVATED SCOUT • scout first love',
+      badge: 'ΠΑΜΕ ΠΑΙΔΙΑ',
+      titleEl: 'ΠΑΜΕ ΠΑΙΔΙΑ • First Lover',
+      titleEn: 'ΠΑΜΕ ΠΑΙΔΙΑ • First Lover',
       xp,
       nextLevelXp: 200,
       minSpots: 1,
@@ -196,6 +198,7 @@ export interface UserProfile {
 
 export type SpotCategory = 
   | 'Παραλίες'
+  | 'Τοποθεσίες'
   | 'Εκδρομές'
   | 'Μηχανάδες'
   | 'Gelato' 

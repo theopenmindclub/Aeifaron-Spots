@@ -179,7 +179,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       authorId: 'user-3',
       authorName: 'Μανώλης Κατσανεβάκης',
       authorAvatar: DEMO_USERS[2].avatarUrl,
-      authorBadge: 'ΕΙΜΑΙ ΑΠΟΛΑΥΣΗ • food expert',
+      authorBadge: 'ΚΑΛΟΦΑΓΑΣ/ΟΥ • Food Expert',
       content: 'Το Gelato Φιστίκι Αιγίνης που μας πρότεινες στο Σύνταγμα δεν παίζεται! Να είσαι πάντα καλά Έλενα!',
       createdAt: '2025-02-16'
     }

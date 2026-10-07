@@ -250,12 +250,12 @@ const MainContent: React.FC = () => {
         </div>
       </footer>
 
-      {/* "Για εμάς" Story Modal */}
+      {/* "Για εμάς" Story Modal — Mobile-Responsive with Scrollable Body & Sticky Header/Footer */}
       <AnimatePresence>
         {isAboutUsOpen && (
           <div
             onClick={() => setIsAboutUsOpen(false)}
-            className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4"
+            className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
@@ -263,21 +263,21 @@ const MainContent: React.FC = () => {
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
               transition={{ duration: 0.2 }}
               onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-xl rounded-3xl bg-[#F1E9D2] dark:bg-[#243B35] border-2 border-[#6B8E7B] shadow-2xl overflow-hidden text-[#243B35] dark:text-[#F1E9D2]"
+              className="relative w-full max-w-xl max-h-[88vh] flex flex-col rounded-2xl sm:rounded-3xl bg-[#F1E9D2] dark:bg-[#243B35] border-2 border-[#6B8E7B] shadow-2xl overflow-hidden text-[#243B35] dark:text-[#F1E9D2] my-auto"
             >
               {/* Modal Header */}
-              <div className="flex items-center justify-between px-6 py-5 bg-[#243B35] text-[#F1E9D2] border-b-2 border-[#6B8E7B]">
-                <div className="flex items-center gap-3">
+              <div className="shrink-0 flex items-center justify-between gap-2.5 px-4 sm:px-6 py-3.5 sm:py-5 bg-[#243B35] text-[#F1E9D2] border-b-2 border-[#6B8E7B]">
+                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
                   <img
                     src="/aeifaron-pin-logo.svg"
                     alt="Aeifaron Pin Logo"
-                    className="w-10 h-11 rounded-xl object-contain bg-[#F1E9D2] p-0.5 border border-[#B7C9B1]"
+                    className="w-9 h-10 sm:w-10 sm:h-11 rounded-xl object-contain bg-[#F1E9D2] p-0.5 border border-[#B7C9B1] shrink-0"
                   />
-                  <div>
-                    <h3 className="font-heading text-xl sm:text-2xl font-bold text-[#F1E9D2]">
+                  <div className="min-w-0">
+                    <h3 className="font-heading text-base sm:text-2xl font-bold text-[#F1E9D2] leading-snug">
                       {language === 'el' ? 'Για εμάς • Πώς γεννήθηκε το Aeifaron Spots' : 'About Us • How Aeifaron Spots Was Born'}
                     </h3>
-                    <p className="text-xs font-semibold text-[#B7C9B1]">
+                    <p className="text-[11px] sm:text-xs font-semibold text-[#B7C9B1] mt-0.5">
                       © 2006-2026 Aeifaron Spots
                     </p>
                   </div>
@@ -285,62 +285,46 @@ const MainContent: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsAboutUsOpen(false)}
-                  className="p-2 rounded-xl bg-[#6B8E7B] hover:bg-[#B7C9B1] text-[#F1E9D2] hover:text-[#243B35] transition-colors cursor-pointer"
+                  aria-label="Close modal"
+                  className="p-2 rounded-xl bg-[#6B8E7B] hover:bg-[#B7C9B1] text-[#F1E9D2] hover:text-[#243B35] transition-colors cursor-pointer shrink-0"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              {/* Modal Body */}
-              <div className="p-6 sm:p-8 space-y-5">
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#6B2F2F] text-[#F4D6C6] text-xs font-extrabold">
-                  <Sparkles className="w-3.5 h-3.5" />
+              {/* Scrollable Modal Body */}
+              <div className="overflow-y-auto p-4 sm:p-8 space-y-4 sm:space-y-5 flex-1">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#6B2F2F] text-[#F4D6C6] text-[11px] sm:text-xs font-extrabold">
+                  <Sparkles className="w-3.5 h-3.5 shrink-0" />
                   <span>{language === 'el' ? 'Η Ιστορία της Παρέας μας' : 'Our Community Story'}</span>
                 </div>
 
-                {language === 'el' ? (
-                  <div className="space-y-4 text-base sm:text-lg leading-relaxed font-medium text-[#243B35] dark:text-[#F1E9D2]">
-                    <p>
-                      Η ιδέα αυτής της εφαρμογής γεννήθηκε αυθόρμητα από μια ζεστή συζήτηση σε ένα <strong>κοινό πρωινό μελών του Αείφαρον</strong>.
-                    </p>
-                    <p>
-                      Καθώς απολαμβάναμε την παρέα μας, αναφέρθηκε πού έφαγε ένα μέλος <strong>το καλύτερο παγωτό</strong>! Δεν άργησε η συζήτηση να γεμίσει με ενθουσιασμό, χαμόγελα και με ερωτήσεις τύπου:
-                    </p>
-                    <blockquote className="p-4 rounded-2xl bg-[#6B2F2F] text-[#F4D6C6] font-heading text-xl sm:text-2xl font-bold text-center shadow-md border border-[#D88C72]">
-                      «Πού είναι αυτό που είπες;» 🍨
-                    </blockquote>
-                    <p>
-                      Κάθε μέλος άρχισε να μοιράζεται τα δικά του αγαπημένα, δοκιμασμένα στέκια — και κάπως έτσι γεννήθηκε το <strong>Aeifaron Spots</strong>, για να έχουμε όλοι στην Αειφαριώτικη οικογένεια τις καλύτερες επιλογές όπου κι αν βρεθούμε!
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4 text-base sm:text-lg leading-relaxed font-medium text-[#243B35] dark:text-[#F1E9D2]">
-                    <p>
-                      The idea for this application was born spontaneously from a warm conversation during a <strong>shared breakfast of Aeifaron members</strong>.
-                    </p>
-                    <p>
-                      While enjoying our time together, a member mentioned where they had tasted <strong>the best ice cream</strong>! Before long, the table was filled with excitement, smiles, and questions like:
-                    </p>
-                    <blockquote className="p-4 rounded-2xl bg-[#6B2F2F] text-[#F4D6C6] font-heading text-xl sm:text-2xl font-bold text-center shadow-md border border-[#D88C72]">
-                      “Where is that place you mentioned?” 🍨
-                    </blockquote>
-                    <p>
-                      Everyone started sharing their own favorite, tried-and-true spots — and that is how <strong>Aeifaron Spots</strong> was born, so our entire Aeifaron family can always have the best choices wherever we go!
-                    </p>
-                  </div>
-                )}
+                <div className="space-y-3.5 sm:space-y-4 text-sm sm:text-lg leading-relaxed font-medium text-[#243B35] dark:text-[#F1E9D2]">
+                  <p>
+                    Η ιδέα αυτής της εφαρμογής γεννήθηκε αυθόρμητα από μια ζεστή συζήτηση σε ένα <strong>κοινό πρωινό μελών του Αείφαρον</strong>.
+                  </p>
+                  <p>
+                    Καθώς απολαμβάναμε την παρέα μας, αναφέρθηκε πού έφαγε ένα μέλος <strong>το καλύτερο παγωτό</strong>! Δεν άργησε η συζήτηση να γεμίσει με ενθουσιασμό, χαμόγελα και με ερωτήσεις τύπου:
+                  </p>
+                  <blockquote className="p-3.5 sm:p-4 rounded-2xl bg-[#6B2F2F] text-[#F4D6C6] font-heading text-lg sm:text-2xl font-bold text-center shadow-md border border-[#D88C72]">
+                    «Πού είναι αυτό που είπες;» 🍨
+                  </blockquote>
+                  <p>
+                    Κάθε μέλος άρχισε να μοιράζεται τα δικά του αγαπημένα, δοκιμασμένα στέκια — και κάπως έτσι γεννήθηκε το <strong>Aeifaron Spots</strong>, για να έχουμε όλοι στην Αειφαριώτικη οικογένεια τις καλύτερες επιλογές όπου κι αν βρεθούμε!
+                  </p>
+                </div>
 
-                <div className="pt-4 border-t border-[#6B8E7B]/40 flex items-center justify-between">
+                <div className="pt-3.5 sm:pt-4 border-t border-[#6B8E7B]/40 flex flex-wrap items-center justify-between gap-3">
                   <span className="flex items-center gap-1.5 text-xs font-bold text-[#6B2F2F] dark:text-[#F4D6C6]">
-                    <Heart className="w-4 h-4 fill-current" />
+                    <Heart className="w-4 h-4 fill-current shrink-0" />
                     <span>Αειφαριώτικη Οικογένεια • 2006-2026</span>
                   </span>
                   <button
                     type="button"
                     onClick={() => setIsAboutUsOpen(false)}
-                    className="px-5 py-2.5 rounded-xl bg-[#243B35] dark:bg-[#6B8E7B] hover:bg-[#6B8E7B] text-[#F1E9D2] font-heading text-sm font-bold cursor-pointer transition-colors"
+                    className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#243B35] dark:bg-[#6B8E7B] hover:bg-[#6B8E7B] text-[#F1E9D2] font-heading text-sm font-bold cursor-pointer transition-colors text-center"
                   >
-                    {language === 'el' ? 'Κλείσιμο' : 'Close'}
+                    Κλείσιμο
                   </button>
                 </div>
               </div>

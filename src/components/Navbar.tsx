@@ -6,8 +6,6 @@ import {
   Compass, 
   MapPin, 
   Users, 
-  Sun, 
-  Moon, 
   Menu, 
   X,
   BookOpen
@@ -16,9 +14,6 @@ import {
 export const Navbar: React.FC = () => {
   const { 
     language, 
-    setLanguage, 
-    theme, 
-    toggleTheme, 
     t, 
     currentUser, 
     spots,
@@ -134,46 +129,6 @@ export const Navbar: React.FC = () => {
               <span>Food Spot</span>
             </button>
 
-            {/* Language Switcher: Greek & English Flags + discreet BETA */}
-            <div className="flex items-center gap-1.5 bg-[#1b2d28] px-2 py-1 rounded-xl border border-[#6B8E7B]">
-              <button
-                onClick={() => setLanguage('el')}
-                className={`px-2 py-1 text-base leading-none rounded-lg transition-all cursor-pointer ${
-                  language === 'el'
-                    ? 'bg-[#6B8E7B] shadow-xs scale-105'
-                    : 'opacity-60 hover:opacity-100'
-                }`}
-                title="Ελληνικά"
-                aria-label="Switch to Greek"
-              >
-                🇬🇷
-              </button>
-              <button
-                onClick={() => setLanguage('en')}
-                className={`px-2 py-1 text-base leading-none rounded-lg transition-all cursor-pointer ${
-                  language === 'en'
-                    ? 'bg-[#6B8E7B] shadow-xs scale-105'
-                    : 'opacity-60 hover:opacity-100'
-                }`}
-                title="English"
-                aria-label="Switch to English"
-              >
-                🇬🇧
-              </button>
-              <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-[#6B8E7B]/40 text-[#CDFF9B] border border-[#B7C9B1]/40 select-none">
-                BETA
-              </span>
-            </div>
-
-            {/* Theme Toggle */}
-            <button
-              onClick={toggleTheme}
-              className="p-2.5 rounded-xl bg-[#1b2d28] text-[#F1E9D2] hover:bg-[#6B8E7B] border border-[#6B8E7B] transition-colors cursor-pointer"
-              aria-label="Toggle theme"
-            >
-              {theme === 'light' ? <Moon className="w-4 h-4 text-[#B7C9B1]" /> : <Sun className="w-4 h-4 text-[#CDFF9B]" />}
-            </button>
-
             {/* User Profile Pill */}
             <button
               onClick={() => {
@@ -268,55 +223,22 @@ export const Navbar: React.FC = () => {
             </button>
           </div>
 
-          <div className="pt-3 border-t border-[#6B8E7B] flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[#1b2d28] border border-[#6B8E7B]">
-                <button
-                  onClick={() => setLanguage('el')}
-                  className={`px-2 py-1 rounded-lg text-lg leading-none transition-all cursor-pointer ${
-                    language === 'el'
-                      ? 'bg-[#6B8E7B] shadow-xs scale-105'
-                      : 'opacity-60 hover:opacity-100'
-                  }`}
-                  title="Ελληνικά"
-                  aria-label="Ελληνικά"
-                >
-                  🇬🇷
-                </button>
-                <button
-                  onClick={() => setLanguage('en')}
-                  className={`px-2 py-1 rounded-lg text-lg leading-none transition-all cursor-pointer ${
-                    language === 'en'
-                      ? 'bg-[#6B8E7B] shadow-xs scale-105'
-                      : 'opacity-60 hover:opacity-100'
-                  }`}
-                  title="English"
-                  aria-label="English"
-                >
-                  🇬🇧
-                </button>
-                <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-[#6B8E7B]/40 text-[#CDFF9B] border border-[#B7C9B1]/40 select-none">
-                  BETA
-                </span>
-              </div>
-              <button
-                onClick={toggleTheme}
-                className="p-2.5 rounded-xl bg-[#6B8E7B] text-[#F1E9D2] cursor-pointer"
-              >
-                {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4 text-[#CDFF9B]" />}
-              </button>
-            </div>
-
+          <div className="pt-3 border-t border-[#6B8E7B]">
             <button
               onClick={() => {
                 setSelectedMemberProfile(null);
                 setIsAuthModalOpen(true);
                 setMobileMenuOpen(false);
               }}
-              className="flex items-center gap-2 text-xs font-bold text-[#CDFF9B] bg-[#1b2d28] px-3 py-2 rounded-xl border border-[#6B8E7B]"
+              className="w-full flex items-center justify-between gap-3 text-xs sm:text-sm font-bold text-[#CDFF9B] bg-[#1b2d28] px-4 py-3 rounded-xl border border-[#6B8E7B] hover:bg-[#6B8E7B]/30 transition-colors cursor-pointer"
             >
-              <img src={currentUser.avatarUrl} alt="" className="w-7 h-7 rounded-full object-cover ring-1 ring-[#CDFF9B]" />
-              <span>{currentUser.firstName} ({language === 'el' ? badgeConfig.el : badgeConfig.en})</span>
+              <div className="flex items-center gap-2.5 min-w-0">
+                <img src={currentUser.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover ring-1 ring-[#CDFF9B] shrink-0" />
+                <span className="truncate">{currentUser.firstName} ({language === 'el' ? badgeConfig.el : badgeConfig.en})</span>
+              </div>
+              <span className="text-[11px] font-extrabold text-[#F1E9D2] bg-[#6B8E7B] px-2.5 py-1 rounded-lg shrink-0">
+                Προφίλ
+              </span>
             </button>
           </div>
         </div>

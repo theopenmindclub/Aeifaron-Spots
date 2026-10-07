@@ -54,7 +54,7 @@ export const DEMO_USERS: UserProfile[] = [
       'Αρνάκι αντικριστό στα Λευκά Όρη',
       'Στάκα με αυγά ελευθέρας βοσκής'
     ],
-    badge: 'ΕΙΜΑΙ ΑΠΟΛΑΥΣΗ',
+    badge: 'ΚΑΛΟΦΑΓΑΣ/ΟΥ',
     role: 'scout',
     favoriteRegions: ['Chania & West Crete', 'Heraklion & East Crete'],
     spotsSubmittedCount: 3,
@@ -74,7 +74,7 @@ export const DEMO_USERS: UserProfile[] = [
       'Πίτα μπιφτεκάκι στα κάρβουνα',
       'Χειροποίητες τηγανητές πατάτες σε ελαιόλαδο'
     ],
-    badge: 'ΕΝΕΡΓΟΠΟΙΗΘΗΚΑ ΠΑΙΔΙΑ',
+    badge: 'ΠΑΜΕ ΠΑΙΔΙΑ',
     role: 'member',
     favoriteRegions: ['Athens & Attica', 'Thessaloniki & North', 'Peloponnese (Mani/Nafplio)'],
     spotsSubmittedCount: 1,
@@ -321,6 +321,34 @@ export const INITIAL_HIT_SPOTS: HitSpot[] = [
     createdAt: '2025-02-08T12:00:00Z',
     tags: ['Turquoise Waters', 'Wild Cedar Forest', 'Pink Sand', 'Crete Beach'],
     insiderTips: 'Arrive before 09:30 AM to enjoy the quietest coves under the cedar trees and bring plenty of cold water.',
+    verifiedSpot: true
+  },
+  {
+    id: 'spot-8',
+    authorId: 'user-3',
+    author: DEMO_USERS[2],
+    title: 'Samaria Gorge National Park',
+    titleEl: 'Το Φαράγγι της Σαμαριάς (Λευκά Όρη)',
+    category: 'Τοποθεσίες',
+    region: 'Chania & West Crete',
+    address: 'Οροπέδιο Ομαλού - Αγία Ρουμέλη, Σφακιά, Χανιά 730 05',
+    googleMapsUrl: 'https://maps.google.com/?q=Samaria+Gorge+Chania',
+    coordinates: { lat: 35.3081, lng: 23.9184 },
+    whyIsItSpecial: 'One of the longest and most breathtaking gorges in Europe (16 km), carving through the White Mountains down to the Libyan Sea at Agia Roumeli. Famous for the dramatic "Portes" (Iron Gates) where the canyon narrows to just 3 meters and rises 300 meters high, ancient cypress forests, and Cretan wild goats (Kri-Kri).',
+    whyIsItSpecialEl: 'Ένα από τα μεγαλύτερα και πιο επιβλητικά φαράγγια της Ευρώπης (16 χλμ.), που διασχίζει τα Λευκά Όρη από το Ξυλόσκαλο Ομαλού μέχρι το Λιβυκό Πέλαγος στην Αγία Ρουμέλη. Ξεχωρίζει για τις θρυλικές «Πόρτες» όπου τα βράχια στενεύουν στα 3 μέτρα, τις κρυστάλλινες πηγές, το εγκαταλελειμμένο χωριό Σαμαριά και τα κρητικά αγριοκάτσικα (Κρι-Κρι).',
+    signatureDishes: ['Πεζοπορία 16 χλμ. από Ξυλόσκαλο έως Αγία Ρουμέλη', 'Οι Σιδερένιες «Πόρτες» του Φαραγγιού', 'Βουτιά στα κρυστάλλινα νερά της Αγίας Ρουμέλης'],
+    signatureDishesEl: ['Πεζοπορία 16 χλμ. από Ξυλόσκαλο έως Αγία Ρουμέλη', 'Οι Σιδερένιες «Πόρτες» του Φαραγγιού', 'Βουτιά στα κρυστάλλινα νερά της Αγίας Ρουμέλης'],
+    priceLevel: '5-10€',
+    coverImageUrl: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80',
+    galleryUrls: [
+      'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=80'
+    ],
+    rating: 4.99,
+    reviewsCount: 58,
+    createdAt: '2025-02-10T07:30:00Z',
+    tags: ['Τοποθεσίες', 'Φαράγγι Σαμαριάς', 'Λευκά Όρη', 'Φύση & Πεζοπορία'],
+    insiderTips: 'Ξεκινήστε την κατάβαση από το Ξυλόσκαλο στις 07:00 π.μ. με καλά ορειβατικά παπούτσια. Υπάρχουν πηγές με πόσιμο νερό σε όλη τη διαδρομή!',
     verifiedSpot: true
   }
 ];

@@ -158,7 +158,7 @@ export const AuthModal: React.FC = () => {
   );
   const gamification = getGamificationInfo(userApprovedSpotsCount, displayedUser.reviewsCount || 0);
   const earnedBadge = getGamificationBadge(userApprovedSpotsCount);
-  const currentBadgeConfig = BADGE_TRANSLATIONS[earnedBadge] || BADGE_TRANSLATIONS['ΕΝΕΡΓΟΠΟΙΗΘΗΚΑ ΠΑΙΔΙΑ'];
+  const currentBadgeConfig = BADGE_TRANSLATIONS[earnedBadge] || BADGE_TRANSLATIONS['ΠΑΜΕ ΠΑΙΔΙΑ'];
 
   const handleClose = () => {
     setIsAuthModalOpen(false);
