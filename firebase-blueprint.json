@@ -1,0 +1,155 @@
+{
+  "entities": {
+    "UserPublicProfile": {
+      "title": "UserPublicProfile",
+      "description": "Publicly visible profile of an Aeifaron Spots community member (no PII).",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth UID of the member.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "firstName": {
+          "type": "string",
+          "description": "Member's first name.",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "lastName": {
+          "type": "string",
+          "description": "Member's last name.",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "nickname": {
+          "type": "string",
+          "description": "Member's culinary nickname.",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "avatarUrl": {
+          "type": "string",
+          "description": "URL or data URI for the member's happy profile photo.",
+          "minLength": 1,
+          "maxLength": 200000
+        },
+        "bio": {
+          "type": "string",
+          "description": "Short culinary bio of the member.",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "topFoods": {
+          "type": "array",
+          "description": "Top 3 favorite foods of the member."
+        },
+        "badge": {
+          "type": "string",
+          "description": "Gamification badge title.",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "authProvider": {
+          "type": "string",
+          "description": "Authentication provider used (email, google, facebook, instagram).",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "spotsSubmittedCount": {
+          "type": "number",
+          "description": "Number of approved spots submitted."
+        },
+        "reviewsCount": {
+          "type": "number",
+          "description": "Number of reviews written."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last update."
+        }
+      },
+      "required": [
+        "uid",
+        "firstName",
+        "lastName",
+        "nickname",
+        "avatarUrl",
+        "bio",
+        "topFoods",
+        "badge",
+        "authProvider",
+        "spotsSubmittedCount",
+        "reviewsCount",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "UserPrivateInfo": {
+      "title": "UserPrivateInfo",
+      "description": "Isolated private PII data (such as email) accessible strictly by the document owner.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth UID of the member.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Member's private email address.",
+          "minLength": 3,
+          "maxLength": 254
+        },
+        "authProvider": {
+          "type": "string",
+          "description": "Authentication provider used.",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last update."
+        }
+      },
+      "required": [
+        "uid",
+        "email",
+        "authProvider",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "UserPublicProfile"
+      },
+      "description": "Public member profiles visible to authenticated community members."
+    },
+    "/users/{userId}/private/{docId}": {
+      "schema": {
+        "$ref": "UserPrivateInfo"
+      },
+      "description": "Strictly isolated PII (email) readable and writable only by the owner."
+    }
+  }
+}

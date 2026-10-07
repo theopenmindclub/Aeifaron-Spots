@@ -1,0 +1,178 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net: Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Hardened Global Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Validation Helper: UserPublicProfile
+    function isValidUserPublicProfile(data) {
+      return data.keys().hasAll([
+        'uid',
+        'firstName',
+        'lastName',
+        'nickname',
+        'avatarUrl',
+        'bio',
+        'topFoods',
+        'badge',
+        'authProvider',
+        'spotsSubmittedCount',
+        'reviewsCount',
+        'createdAt',
+        'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'uid',
+        'firstName',
+        'lastName',
+        'nickname',
+        'avatarUrl',
+        'bio',
+        'topFoods',
+        'badge',
+        'authProvider',
+        'spotsSubmittedCount',
+        'reviewsCount',
+        'createdAt',
+        'updatedAt'
+      ]) &&
+      data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.uid == request.auth.uid &&
+      data.firstName is string && data.firstName.size() >= 1 && data.firstName.size() <= 80 &&
+      data.lastName is string && data.lastName.size() >= 1 && data.lastName.size() <= 80 &&
+      data.nickname is string && data.nickname.size() >= 1 && data.nickname.size() <= 80 &&
+      data.avatarUrl is string && data.avatarUrl.size() >= 1 && data.avatarUrl.size() <= 200000 &&
+      data.bio is string && data.bio.size() >= 1 && data.bio.size() <= 1000 &&
+      data.topFoods is list && data.topFoods.size() == 3 &&
+      data.topFoods[0] is string && data.topFoods[0].size() >= 1 && data.topFoods[0].size() <= 120 &&
+      data.topFoods[1] is string && data.topFoods[1].size() >= 1 && data.topFoods[1].size() <= 120 &&
+      data.topFoods[2] is string && data.topFoods[2].size() >= 1 && data.topFoods[2].size() <= 120 &&
+      data.badge is string && data.badge.size() >= 1 && data.badge.size() <= 80 &&
+      data.authProvider is string && data.authProvider.size() >= 1 && data.authProvider.size() <= 40 &&
+      data.spotsSubmittedCount is int && data.spotsSubmittedCount >= 0 && data.spotsSubmittedCount <= 10000 &&
+      data.reviewsCount is int && data.reviewsCount >= 0 && data.reviewsCount <= 10000 &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    // Validation Helper: UserPrivateInfo (PII Isolation)
+    function isValidUserPrivateInfo(data) {
+      return data.keys().hasAll([
+        'uid',
+        'email',
+        'authProvider',
+        'createdAt',
+        'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'uid',
+        'email',
+        'authProvider',
+        'createdAt',
+        'updatedAt'
+      ]) &&
+      data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.uid == request.auth.uid &&
+      data.email is string && data.email.size() >= 3 && data.email.size() <= 254 &&
+      data.authProvider is string && data.authProvider.size() >= 1 && data.authProvider.size() <= 40 &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    // Public User Profiles (No PII)
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && (resource == null || existing().spotsSubmittedCount >= 0);
+      allow list: if isSignedIn() && existing().spotsSubmittedCount >= 0;
+
+      allow create: if isOwner(userId) &&
+        isValidId(userId) &&
+        isValidUserPublicProfile(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+
+      allow update: if isOwner(userId) &&
+        isValidId(userId) &&
+        isValidUserPublicProfile(incoming()) &&
+        incoming().uid == existing().uid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        (
+          // Action: Update Profile Details
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'firstName',
+            'lastName',
+            'nickname',
+            'avatarUrl',
+            'bio',
+            'topFoods',
+            'badge',
+            'spotsSubmittedCount',
+            'reviewsCount',
+            'updatedAt'
+          ])
+        );
+
+      allow delete: if false;
+
+      // Isolated Private PII Subcollection
+      match /private/{docId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(docId) && (resource == null || existing().uid == request.auth.uid);
+        allow list: if false;
+
+        allow create: if isOwner(userId) &&
+          isValidId(userId) &&
+          isValidId(docId) &&
+          docId == 'info' &&
+          isValidUserPrivateInfo(incoming()) &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          (
+            exists(/databases/$(database)/documents/users/$(userId)) ||
+            existsAfter(/databases/$(database)/documents/users/$(userId))
+          );
+
+        allow update: if isOwner(userId) &&
+          isValidId(userId) &&
+          isValidId(docId) &&
+          docId == 'info' &&
+          isValidUserPrivateInfo(incoming()) &&
+          incoming().uid == existing().uid &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          exists(/databases/$(database)/documents/users/$(userId)) &&
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'email',
+            'authProvider',
+            'updatedAt'
+          ]);
+
+        allow delete: if false;
+      }
+    }
+  }
+}

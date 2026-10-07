@@ -17,7 +17,12 @@ import {
   MessageSquare,
   Send,
   UserPlus,
-  Mail
+  Mail,
+  Lock,
+  LogIn,
+  LogOut,
+  ShieldCheck,
+  Info
 } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -37,8 +42,12 @@ export const AuthModal: React.FC = () => {
     currentUser, 
     setCurrentUser, 
     allUsers, 
+    isFirebaseAuthenticated,
     updateCurrentUserProfile, 
     registerNewMember,
+    loginWithEmailPassword,
+    signInWithProvider,
+    logoutUser,
     selectedMemberProfile,
     setSelectedMemberProfile,
     profileComments,
@@ -52,14 +61,17 @@ export const AuthModal: React.FC = () => {
   const displayedUser = selectedMemberProfile || currentUser;
   const isCurrentUser = displayedUser.id === currentUser.id;
 
-  const [mode, setMode] = useState<'view' | 'edit' | 'register'>('view');
+  const [mode, setMode] = useState<'view' | 'edit' | 'register' | 'login'>('view');
   const [commentInput, setCommentInput] = useState('');
+  const [showProviderSetupHelp, setShowProviderSetupHelp] = useState(false);
 
-  // Edit / Register form fields
+  // Edit / Register / Login form fields
   const [firstName, setFirstName] = useState(displayedUser.firstName);
   const [lastName, setLastName] = useState(displayedUser.lastName);
   const [nickname, setNickname] = useState(displayedUser.nickname || '');
   const [email, setEmail] = useState(displayedUser.email || '');
+  const [password, setPassword] = useState('');
+  const [authProviderUsed, setAuthProviderUsed] = useState<'email' | 'google' | 'facebook' | 'instagram'>('email');
   const [bio, setBio] = useState(displayedUser.bio);
   const [avatarUrl, setAvatarUrl] = useState(displayedUser.avatarUrl);
   const [food1, setFood1] = useState(displayedUser.topFoods?.[0] || '');
@@ -74,6 +86,8 @@ export const AuthModal: React.FC = () => {
     setLastName(displayedUser.lastName);
     setNickname(displayedUser.nickname || '');
     setEmail(displayedUser.email || '');
+    setPassword('');
+    setAuthProviderUsed('email');
     setBio(displayedUser.bio);
     setAvatarUrl(displayedUser.avatarUrl);
     setFood1(displayedUser.topFoods?.[0] || '');
@@ -89,12 +103,52 @@ export const AuthModal: React.FC = () => {
     setLastName('');
     setNickname('');
     setEmail('');
+    setPassword('');
+    setAuthProviderUsed('email');
     setBio('');
     setAvatarUrl(HAPPY_AVATAR_PRESETS[1]);
     setFood1('');
     setFood2('');
     setFood3('');
     setMode('register');
+  };
+
+  const startLoginMode = () => {
+    setEmail('');
+    setPassword('');
+    setMode('login');
+  };
+
+  const handleSocialAuth = async (provider: 'google' | 'facebook' | 'instagram') => {
+    setIsRegistering(true);
+    const res = await signInWithProvider(provider);
+    setIsRegistering(false);
+
+    if (res.success) {
+      if (res.needsProfileCompletion && res.prefill) {
+        setFirstName(res.prefill.firstName);
+        setLastName(res.prefill.lastName);
+        setEmail(res.prefill.email);
+        setAvatarUrl(res.prefill.avatarUrl || HAPPY_AVATAR_PRESETS[1]);
+        setAuthProviderUsed(res.prefill.authProvider);
+        setMode('register');
+      } else {
+        setSelectedMemberProfile(null);
+        setMode('view');
+      }
+    }
+  };
+
+  const handleEmailLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !password) return;
+    setIsRegistering(true);
+    const res = await loginWithEmailPassword(email.trim(), password);
+    setIsRegistering(false);
+    if (res.success) {
+      setSelectedMemberProfile(null);
+      setMode('view');
+    }
   };
 
   // Dynamic spots count & XP gamification calculation
@@ -140,6 +194,8 @@ export const AuthModal: React.FC = () => {
         lastName: lastName.trim(),
         nickname: nickname.trim() || 'Food Lover',
         email: email.trim() || `${Date.now()}@aeifaron.gr`,
+        password: authProviderUsed === 'email' ? password : undefined,
+        authProvider: authProviderUsed,
         avatarUrl: avatarUrl.trim(),
         bio: bio.trim(),
         topFoods: updatedTopFoods
@@ -178,21 +234,40 @@ export const AuthModal: React.FC = () => {
       >
         
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#D88C72] bg-[#6B2F2F] text-[#F4D6C6]">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-6 py-4 border-b border-[#D88C72] bg-[#6B2F2F] text-[#F4D6C6]">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-[#A44A3F] text-[#F4D6C6]">
               <User className="w-5 h-5" />
             </div>
-            <h2 className="font-heading text-xl sm:text-2xl font-bold">
-              {mode === 'register'
-                ? 'Εγγραφή Νέου Μέλους & Δημιουργία Προφίλ'
-                : isCurrentUser
-                ? 'Προσωπικό Προφίλ Μέλους'
-                : `Προφίλ Μέλους: ${displayedUser.firstName} ${displayedUser.lastName}`}
-            </h2>
+            <div>
+              <h2 className="font-heading text-xl sm:text-2xl font-bold">
+                {mode === 'register'
+                  ? 'Εγγραφή Νέου Μέλους & Δημιουργία Προφίλ'
+                  : mode === 'login'
+                  ? 'Σύνδεση Εγγεγραμμένου Μέλους'
+                  : isCurrentUser
+                  ? 'Προσωπικό Προφίλ Μέλους'
+                  : `Προφίλ Μέλους: ${displayedUser.firstName} ${displayedUser.lastName}`}
+              </h2>
+              {isFirebaseAuthenticated && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#CDFF9B]">
+                  <ShieldCheck className="w-3 h-3" />
+                  <span>Συνδεδεμένος Λογαριασμός Μέλους</span>
+                </span>
+              )}
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {mode !== 'login' && (
+              <button
+                onClick={startLoginMode}
+                className="px-3 py-1.5 rounded-xl bg-[#A44A3F] hover:bg-[#D88C72] text-[#F4D6C6] hover:text-[#6B2F2F] text-xs font-extrabold flex items-center gap-1.5 cursor-pointer transition-colors border border-[#D88C72]/50"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Σύνδεση</span>
+              </button>
+            )}
             {mode !== 'register' && (
               <button
                 onClick={startRegistrationMode}
@@ -200,6 +275,15 @@ export const AuthModal: React.FC = () => {
               >
                 <UserPlus className="w-3.5 h-3.5" />
                 <span>+ Νέα Εγγραφή Μέλους</span>
+              </button>
+            )}
+            {isFirebaseAuthenticated && (
+              <button
+                onClick={logoutUser}
+                title="Αποσύνδεση"
+                className="p-2 rounded-xl bg-[#A44A3F] hover:bg-red-700 text-[#F4D6C6] transition-colors cursor-pointer"
+              >
+                <LogOut className="w-4 h-4" />
               </button>
             )}
             <button
@@ -214,7 +298,122 @@ export const AuthModal: React.FC = () => {
         {/* Modal Content */}
         <div className="overflow-y-auto p-6 space-y-6">
           
-          {mode === 'view' ? (
+          {mode === 'login' ? (
+            <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border-2 border-[#A44A3F] space-y-5 shadow-lg">
+              <div className="flex items-center justify-between border-b border-stone-200 dark:border-slate-800 pb-3">
+                <h3 className="font-heading text-xl font-bold text-[#6B2F2F] dark:text-[#F4D6C6]">
+                  Σύνδεση Μέλους (Email/Κωδικός, Google, Facebook, Instagram)
+                </h3>
+                <button
+                  type="button"
+                  onClick={startRegistrationMode}
+                  className="text-xs font-extrabold text-[#A44A3F] hover:underline cursor-pointer"
+                >
+                  Δεν έχετε λογαριασμό; Εγγραφή →
+                </button>
+              </div>
+
+              {/* Social Authentication Buttons */}
+              <div className="space-y-2.5">
+                <span className="block text-xs font-extrabold uppercase tracking-wider text-stone-500 dark:text-stone-400">
+                  Άμεση Σύνδεση με Κοινωνικά Δίκτυα &amp; Google:
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <button
+                    type="button"
+                    disabled={isRegistering}
+                    onClick={() => handleSocialAuth('google')}
+                    className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white dark:bg-slate-800 hover:bg-stone-50 border-2 border-stone-200 dark:border-slate-700 text-stone-800 dark:text-stone-100 text-xs font-extrabold shadow-xs cursor-pointer transition-all"
+                  >
+                    <span className="text-base font-black text-red-500">G</span>
+                    <span>Google Auth</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={isRegistering}
+                    onClick={() => handleSocialAuth('facebook')}
+                    className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#1877F2] hover:bg-[#166FE5] text-white text-xs font-extrabold shadow-xs cursor-pointer transition-all"
+                  >
+                    <span className="text-base font-black">f</span>
+                    <span>Facebook</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={isRegistering}
+                    onClick={() => handleSocialAuth('instagram')}
+                    className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F77737] hover:opacity-95 text-white text-xs font-extrabold shadow-xs cursor-pointer transition-all"
+                  >
+                    <span className="text-base">📸</span>
+                    <span>Instagram</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="relative flex py-1 items-center">
+                <div className="flex-grow border-t border-stone-200 dark:border-slate-800"></div>
+                <span className="flex-shrink mx-3 text-xs font-bold uppercase text-stone-400">
+                  Ή Σύνδεση με Email &amp; Κωδικό
+                </span>
+                <div className="flex-grow border-t border-stone-200 dark:border-slate-800"></div>
+              </div>
+
+              <form onSubmit={handleEmailLoginSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-extrabold uppercase text-stone-700 dark:text-stone-300 mb-1">
+                    Email Μέλους *
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="nikos@aeifaron.gr"
+                      className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-stone-50 dark:bg-slate-800 border border-stone-200 dark:border-slate-700 text-sm font-semibold"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-extrabold uppercase text-stone-700 dark:text-stone-300 mb-1">
+                    Κωδικός Πρόσβασης *
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Εισάγετε τον κωδικό σας..."
+                      className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-stone-50 dark:bg-slate-800 border border-stone-200 dark:border-slate-700 text-sm font-semibold"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setMode('view')}
+                    className="px-4 py-2.5 rounded-xl text-sm font-bold text-stone-600 hover:bg-stone-100 dark:text-stone-400 dark:hover:bg-slate-800 cursor-pointer"
+                  >
+                    Ακύρωση
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isRegistering}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#6B2F2F] hover:bg-[#A44A3F] text-[#F4D6C6] text-sm font-bold shadow-md cursor-pointer"
+                  >
+                    <LogIn className="w-4 h-4" />
+                    <span>Σύνδεση με Email</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          ) : mode === 'view' ? (
             <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border-2 border-[#D88C72] dark:border-slate-800 shadow-md space-y-6">
               
               {/* Top Profile Section: Clear Happy Photo + Full Name + Gamification Level next to it + Nickname */}
@@ -358,7 +557,7 @@ export const AuthModal: React.FC = () => {
           ) : (
             /* Edit or Register Profile Form */
             <form onSubmit={handleSave} className="p-6 rounded-3xl bg-white dark:bg-slate-900 border-2 border-[#A44A3F] space-y-5 shadow-lg">
-              <div className="flex items-center justify-between border-b border-stone-200 dark:border-slate-800 pb-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-200 dark:border-slate-800 pb-3">
                 <h3 className="font-heading text-xl font-bold text-[#6B2F2F] dark:text-[#F4D6C6]">
                   {mode === 'register'
                     ? 'Κανονική Εγγραφή Νέου Μέλους & Συμπλήρωση Προφίλ'
@@ -366,6 +565,92 @@ export const AuthModal: React.FC = () => {
                 </h3>
                 <span className="text-xs font-bold text-[#A44A3F]">* Όλα τα πεδία είναι απαραίτητα</span>
               </div>
+
+              {mode === 'register' && (
+                <div className="p-4 rounded-2xl bg-[#F4D6C6]/45 dark:bg-slate-800 border border-[#D88C72] space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-xs font-extrabold uppercase tracking-wider text-[#6B2F2F] dark:text-[#F4D6C6]">
+                      1. Επιλέξτε Τρόπο Εγγραφής (Google, Facebook, Instagram ή Email &amp; Κωδικό):
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowProviderSetupHelp(!showProviderSetupHelp)}
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-[#A44A3F] hover:underline cursor-pointer"
+                    >
+                      <Info className="w-3.5 h-3.5" />
+                      <span>Οδηγός Ενεργοποίησης Παρόχων</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <button
+                      type="button"
+                      disabled={isRegistering}
+                      onClick={() => handleSocialAuth('google')}
+                      className={`flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl border-2 text-xs font-extrabold shadow-2xs cursor-pointer transition-all ${
+                        authProviderUsed === 'google'
+                          ? 'bg-[#6B2F2F] text-[#F4D6C6] border-[#A44A3F] ring-2 ring-[#D88C72]'
+                          : 'bg-white dark:bg-slate-900 hover:bg-stone-50 border-stone-200 dark:border-slate-700 text-stone-800 dark:text-stone-100'
+                      }`}
+                    >
+                      <span className="text-base font-black text-red-500">G</span>
+                      <span>Εγγραφή με Google</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={isRegistering}
+                      onClick={() => handleSocialAuth('facebook')}
+                      className={`flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-extrabold shadow-2xs cursor-pointer transition-all ${
+                        authProviderUsed === 'facebook'
+                          ? 'bg-[#1877F2] text-white ring-2 ring-[#6B2F2F]'
+                          : 'bg-[#1877F2] hover:bg-[#166FE5] text-white'
+                      }`}
+                    >
+                      <span className="text-base font-black">f</span>
+                      <span>Εγγραφή με Facebook</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={isRegistering}
+                      onClick={() => handleSocialAuth('instagram')}
+                      className={`flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-extrabold shadow-2xs cursor-pointer transition-all bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F77737] text-white ${
+                        authProviderUsed === 'instagram' ? 'ring-2 ring-[#6B2F2F]' : 'hover:opacity-95'
+                      }`}
+                    >
+                      <span className="text-base">📸</span>
+                      <span>Εγγραφή με Instagram</span>
+                    </button>
+                  </div>
+
+                  {authProviderUsed !== 'email' && (
+                    <div className="px-3 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-700 text-xs font-bold text-emerald-800 dark:text-emerald-200 flex items-center justify-between">
+                      <span>✓ Ταυτοποιήθηκε με {authProviderUsed.toUpperCase()}! Συμπληρώστε παρακάτω το προφίλ σας.</span>
+                      <button
+                        type="button"
+                        onClick={() => setAuthProviderUsed('email')}
+                        className="underline text-[11px] cursor-pointer"
+                      >
+                        Αλλαγή σε Email/Κωδικό
+                      </button>
+                    </div>
+                  )}
+
+                  {showProviderSetupHelp && (
+                    <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-[#D88C72] text-[11px] text-stone-700 dark:text-stone-300 space-y-1 leading-relaxed">
+                      <p className="font-bold text-[#6B2F2F] dark:text-[#F4D6C6]">
+                        ℹ️ Πληροφορίες Ρύθμισης Firebase Authentication (Project: youthful-manifest-m61jg):
+                      </p>
+                      <ul className="list-disc pl-4 space-y-0.5">
+                        <li><strong>Google Auth:</strong> Είναι ήδη έτοιμο και ενεργοποιημένο αυτόματα!</li>
+                        <li><strong>Email &amp; Κωδικός:</strong> Στο Firebase Console → Authentication → Sign-in method → ενεργοποιήστε το <em>Email/Password</em>.</li>
+                        <li><strong>Facebook &amp; Instagram:</strong> Στο Firebase Console → Authentication → Sign-in method → προσθέστε <em>Facebook</em> (ή OIDC <code>oidc.instagram</code>) με το App ID &amp; Secret από το Meta for Developers.</li>
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
               
               {/* Happy Photo Notice & Uploader */}
               <div className="p-4 rounded-2xl bg-[#FFF7F2] dark:bg-slate-800 border border-[#D88C72] space-y-3">
@@ -495,6 +780,25 @@ export const AuthModal: React.FC = () => {
                     />
                   </div>
                 </div>
+                {mode === 'register' && authProviderUsed === 'email' && (
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-extrabold uppercase text-[#6B2F2F] dark:text-[#F4D6C6] mb-1">
+                      Κωδικός Πρόσβασης (Τουλάχιστον 6 χαρακτήρες) *
+                    </label>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-[#A44A3F] absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="password"
+                        minLength={6}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Επιλέξτε έναν ασφαλή κωδικό πρόσβασης..."
+                        className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-[#F4D6C6]/40 dark:bg-slate-800 border border-[#D88C72] text-sm font-semibold"
+                        required
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Personal Bio Paragraph */}

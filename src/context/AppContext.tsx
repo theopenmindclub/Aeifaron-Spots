@@ -16,6 +16,29 @@ import {
 } from '../types';
 import { translations, Translations } from '../i18n/translations';
 import { INITIAL_HIT_SPOTS, INITIAL_REVIEWS, DEMO_USERS } from '../data/mockData';
+import {
+  auth,
+  db,
+  googleProvider,
+  facebookProvider,
+  instagramProvider,
+  signInWithPopup,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  firebaseSignOut,
+  updateProfile,
+  doc,
+  getDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+  serverTimestamp,
+  writeBatch,
+  handleFirestoreError,
+  OperationType
+} from '../services/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 
 interface AppContextType {
   language: Language;
@@ -27,16 +50,33 @@ interface AppContextType {
   currentUser: UserProfile;
   setCurrentUser: (user: UserProfile) => void;
   allUsers: UserProfile[];
+  isFirebaseAuthenticated: boolean;
   updateCurrentUserProfile: (updated: Partial<UserProfile>) => void;
   registerNewMember: (data: {
     firstName: string;
     lastName: string;
     nickname: string;
     email: string;
+    password?: string;
+    authProvider?: 'email' | 'google' | 'facebook' | 'instagram';
     avatarUrl: string;
     bio: string;
     topFoods: [string, string, string];
   }) => Promise<boolean>;
+  loginWithEmailPassword: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signInWithProvider: (providerName: 'google' | 'facebook' | 'instagram') => Promise<{
+    success: boolean;
+    needsProfileCompletion?: boolean;
+    prefill?: {
+      firstName: string;
+      lastName: string;
+      email: string;
+      avatarUrl: string;
+      authProvider: 'google' | 'facebook' | 'instagram';
+    };
+    error?: string;
+  }>;
+  logoutUser: () => Promise<void>;
   selectedMemberProfile: UserProfile | null;
   setSelectedMemberProfile: (user: UserProfile | null) => void;
   
@@ -109,6 +149,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [currentUser, setCurrentUser] = useState<UserProfile>(DEMO_USERS[0]);
   const [allUsers, setAllUsers] = useState<UserProfile[]>(DEMO_USERS);
+  const [isFirebaseAuthenticated, setIsFirebaseAuthenticated] = useState<boolean>(false);
   const [selectedMemberProfile, setSelectedMemberProfile] = useState<UserProfile | null>(null);
   
   const [spots, setSpots] = useState<HitSpot[]>(INITIAL_HIT_SPOTS);
@@ -327,10 +368,212 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   }, []);
 
+  // Listen to Firebase Auth state and load Firestore member profiles
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+      if (fbUser) {
+        setIsFirebaseAuthenticated(true);
+        const userDocPath = `users/${fbUser.uid}`;
+        try {
+          const snap = await getDoc(doc(db, 'users', fbUser.uid));
+          if (snap.exists()) {
+            const d = snap.data();
+            const loadedProfile: UserProfile = {
+              id: fbUser.uid,
+              firstName: d.firstName || 'Μέλος',
+              lastName: d.lastName || 'Αείφαρον',
+              nickname: d.nickname || 'Food Lover',
+              email: fbUser.email || '',
+              avatarUrl: d.avatarUrl || fbUser.photoURL || DEMO_USERS[0].avatarUrl,
+              bio: d.bio || 'Μέλος της Αειφαριώτικης οικογένειας.',
+              topFoods: Array.isArray(d.topFoods) && d.topFoods.length === 3
+                ? [d.topFoods[0], d.topFoods[1], d.topFoods[2]]
+                : ['Σουβλάκι στα κάρβουνα', 'Παραδοσιακή πίτα', 'Gelato Φιστίκι'],
+              badge: (d.badge as any) || getGamificationBadge(d.spotsSubmittedCount || 1),
+              role: 'member',
+              favoriteRegions: ['Athens & Attica'],
+              spotsSubmittedCount: typeof d.spotsSubmittedCount === 'number' ? d.spotsSubmittedCount : 1,
+              reviewsCount: typeof d.reviewsCount === 'number' ? d.reviewsCount : 0,
+              joinedAt: new Date().toISOString().split('T')[0],
+              points: (d.spotsSubmittedCount || 1) * 100
+            };
+            setCurrentUser(loadedProfile);
+            setAllUsers((prev) => {
+              const exists = prev.some((u) => u.id === loadedProfile.id);
+              return exists
+                ? prev.map((u) => (u.id === loadedProfile.id ? loadedProfile : u))
+                : [loadedProfile, ...prev];
+            });
+          }
+
+          // Also fetch all registered Firestore community profiles
+          const q = query(collection(db, 'users'), where('spotsSubmittedCount', '>=', 0));
+          const listSnap = await getDocs(q);
+          const firestoreUsers: UserProfile[] = [];
+          listSnap.forEach((docSnap) => {
+            const d = docSnap.data();
+            firestoreUsers.push({
+              id: docSnap.id,
+              firstName: d.firstName || 'Μέλος',
+              lastName: d.lastName || 'Αείφαρον',
+              nickname: d.nickname || 'Food Lover',
+              email: docSnap.id === fbUser.uid ? (fbUser.email || '') : '',
+              avatarUrl: d.avatarUrl || DEMO_USERS[0].avatarUrl,
+              bio: d.bio || 'Μέλος της Αειφαριώτικης οικογένειας.',
+              topFoods: Array.isArray(d.topFoods) && d.topFoods.length === 3
+                ? [d.topFoods[0], d.topFoods[1], d.topFoods[2]]
+                : ['Σουβλάκι στα κάρβουνα', 'Παραδοσιακή πίτα', 'Gelato Φιστίκι'],
+              badge: (d.badge as any) || getGamificationBadge(d.spotsSubmittedCount || 1),
+              role: 'member',
+              favoriteRegions: ['Athens & Attica'],
+              spotsSubmittedCount: typeof d.spotsSubmittedCount === 'number' ? d.spotsSubmittedCount : 1,
+              reviewsCount: typeof d.reviewsCount === 'number' ? d.reviewsCount : 0,
+              joinedAt: new Date().toISOString().split('T')[0],
+              points: (d.spotsSubmittedCount || 1) * 100
+            });
+          });
+          if (firestoreUsers.length > 0) {
+            setAllUsers((prev) => {
+              const merged = [...prev];
+              for (const fu of firestoreUsers) {
+                const idx = merged.findIndex((u) => u.id === fu.id);
+                if (idx >= 0) {
+                  merged[idx] = fu;
+                } else {
+                  merged.unshift(fu);
+                }
+              }
+              return merged;
+            });
+          }
+        } catch (err) {
+          if (err instanceof Error && err.message.includes('Missing or insufficient permissions')) {
+            handleFirestoreError(err, OperationType.GET, userDocPath);
+          }
+        }
+      } else {
+        setIsFirebaseAuthenticated(false);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const persistUserToFirestore = async (
+    uid: string,
+    profileData: {
+      firstName: string;
+      lastName: string;
+      nickname: string;
+      email: string;
+      avatarUrl: string;
+      bio: string;
+      topFoods: [string, string, string];
+      badge: string;
+      authProvider: string;
+      spotsSubmittedCount: number;
+      reviewsCount: number;
+    },
+    isNew: boolean
+  ) => {
+    const safeFirst = (profileData.firstName || 'Μέλος').trim().slice(0, 80);
+    const safeLast = (profileData.lastName || 'Αείφαρον').trim().slice(0, 80);
+    const safeNick = (profileData.nickname || 'Food Lover').trim().slice(0, 80);
+    const safeAvatar = (profileData.avatarUrl || DEMO_USERS[0].avatarUrl).trim().slice(0, 200000);
+    const safeBio = (profileData.bio || 'Λάτρης του καλού φαγητού στην Αειφαριώτικη παρέα!').trim().slice(0, 1000);
+    const safeFoods: [string, string, string] = [
+      (profileData.topFoods[0] || 'Αυθεντικό σουβλάκι').trim().slice(0, 120),
+      (profileData.topFoods[1] || 'Χωριάτικη πίτα').trim().slice(0, 120),
+      (profileData.topFoods[2] || 'Gelato φιστίκι').trim().slice(0, 120)
+    ];
+    const safeBadge = (profileData.badge || 'ΕΝΕΡΓΟΠΟΙΗΘΗΚΑ ΠΑΙΔΙΑ').trim().slice(0, 80);
+    const safeProvider = (profileData.authProvider || 'email').trim().slice(0, 40);
+    const safeEmail = (profileData.email || 'member@aeifaron.gr').trim().slice(0, 254);
+
+    const userRef = doc(db, 'users', uid);
+    const privateRef = doc(db, 'users', uid, 'private', 'info');
+
+    try {
+      const existingSnap = await getDoc(userRef);
+      const batch = writeBatch(db);
+
+      if (!existingSnap.exists() || isNew) {
+        batch.set(userRef, {
+          uid,
+          firstName: safeFirst,
+          lastName: safeLast,
+          nickname: safeNick,
+          avatarUrl: safeAvatar,
+          bio: safeBio,
+          topFoods: safeFoods,
+          badge: safeBadge,
+          authProvider: safeProvider,
+          spotsSubmittedCount: Math.max(0, Math.floor(profileData.spotsSubmittedCount || 1)),
+          reviewsCount: Math.max(0, Math.floor(profileData.reviewsCount || 0)),
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+        batch.set(privateRef, {
+          uid,
+          email: safeEmail,
+          authProvider: safeProvider,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+      } else {
+        const existingData = existingSnap.data();
+        batch.set(userRef, {
+          uid,
+          firstName: safeFirst,
+          lastName: safeLast,
+          nickname: safeNick,
+          avatarUrl: safeAvatar,
+          bio: safeBio,
+          topFoods: safeFoods,
+          badge: safeBadge,
+          authProvider: existingData.authProvider || safeProvider,
+          spotsSubmittedCount: Math.max(0, Math.floor(profileData.spotsSubmittedCount ?? existingData.spotsSubmittedCount ?? 1)),
+          reviewsCount: Math.max(0, Math.floor(profileData.reviewsCount ?? existingData.reviewsCount ?? 0)),
+          createdAt: existingData.createdAt,
+          updatedAt: serverTimestamp()
+        });
+      }
+
+      await batch.commit();
+    } catch (err) {
+      if (err instanceof Error && err.message.includes('Missing or insufficient permissions')) {
+        handleFirestoreError(err, isNew ? OperationType.CREATE : OperationType.UPDATE, `users/${uid}`);
+      }
+      throw err;
+    }
+  };
+
   const updateCurrentUserProfile = (updated: Partial<UserProfile>) => {
     const newUser = { ...currentUser, ...updated };
     setCurrentUser(newUser);
     setAllUsers((prev) => prev.map((u) => (u.id === newUser.id ? newUser : u)));
+
+    if (auth.currentUser && auth.currentUser.uid === newUser.id) {
+      persistUserToFirestore(
+        auth.currentUser.uid,
+        {
+          firstName: newUser.firstName,
+          lastName: newUser.lastName,
+          nickname: newUser.nickname || 'Food Lover',
+          email: newUser.email || auth.currentUser.email || 'member@aeifaron.gr',
+          avatarUrl: newUser.avatarUrl,
+          bio: newUser.bio,
+          topFoods: newUser.topFoods && newUser.topFoods.length === 3
+            ? newUser.topFoods
+            : ['Αγαπημένο Πιάτο #1', 'Αγαπημένο Πιάτο #2', 'Αγαπημένο Πιάτο #3'],
+          badge: newUser.badge,
+          authProvider: 'email',
+          spotsSubmittedCount: newUser.spotsSubmittedCount || 1,
+          reviewsCount: newUser.reviewsCount || 0
+        },
+        false
+      ).catch(() => {});
+    }
+
     fetch(`/api/users/${newUser.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -344,15 +587,78 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     lastName: string;
     nickname: string;
     email: string;
+    password?: string;
+    authProvider?: 'email' | 'google' | 'facebook' | 'instagram';
     avatarUrl: string;
     bio: string;
     topFoods: [string, string, string];
   }): Promise<boolean> => {
     try {
+      let firebaseUid = auth.currentUser?.uid || null;
+      const providerUsed = data.authProvider || 'email';
+
+      // If registering with email & password, create real Firebase Auth account
+      if (providerUsed === 'email' && data.password) {
+        if (data.password.length < 6) {
+          showToast('Ο κωδικός πρόσβασης πρέπει να έχει τουλάχιστον 6 χαρακτήρες.', 'error');
+          return false;
+        }
+        try {
+          const userCred = await createUserWithEmailAndPassword(auth, data.email.trim(), data.password);
+          firebaseUid = userCred.user.uid;
+          await updateProfile(userCred.user, {
+            displayName: `${data.firstName.trim()} ${data.lastName.trim()}`,
+            photoURL: data.avatarUrl.startsWith('http') ? data.avatarUrl : undefined
+          });
+        } catch (fbErr: any) {
+          if (fbErr?.code === 'auth/email-already-in-use') {
+            showToast('Αυτό το email χρησιμοποιείται ήδη! Δοκιμάστε Σύνδεση Μέλους.', 'error');
+            return false;
+          } else if (fbErr?.code === 'auth/operation-not-allowed') {
+            // Guide admin/user if Email/Password provider isn't enabled yet in Firebase Console while still completing registration
+            showToast(
+              'Σημείωση: Ενεργοποιήστε το Email/Password στο Firebase Console > Authentication > Sign-in method. Το προφίλ σας καταχωρήθηκε!',
+              'info'
+            );
+          } else if (fbErr?.code === 'auth/invalid-email') {
+            showToast('Παρακαλώ εισάγετε ένα έγκυρο email.', 'error');
+            return false;
+          } else {
+            showToast(fbErr?.message || 'Σφάλμα αυθεντικοποίησης Firebase.', 'error');
+            return false;
+          }
+        }
+      }
+
+      // Save to Firestore if authenticated with Firebase
+      if (firebaseUid && auth.currentUser) {
+        await persistUserToFirestore(
+          firebaseUid,
+          {
+            firstName: data.firstName,
+            lastName: data.lastName,
+            nickname: data.nickname,
+            email: data.email,
+            avatarUrl: data.avatarUrl,
+            bio: data.bio,
+            topFoods: data.topFoods,
+            badge: 'ΕΝΕΡΓΟΠΟΙΗΘΗΚΑ ΠΑΙΔΙΑ',
+            authProvider: providerUsed,
+            spotsSubmittedCount: 1,
+            reviewsCount: 0
+          },
+          true
+        );
+      }
+
+      // Also sync with backend live session state so all connected clients see the new member immediately
       const res = await fetch('/api/users/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body: JSON.stringify({
+          ...data,
+          id: firebaseUid || undefined
+        })
       });
       const json = await res.json();
       if (!res.ok) {
@@ -360,7 +666,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return false;
       }
       if (json.user) {
-        setCurrentUser(json.user);
+        const syncedUser = firebaseUid ? { ...json.user, id: firebaseUid } : json.user;
+        setCurrentUser(syncedUser);
       }
       if (Array.isArray(json.users)) {
         setAllUsers(json.users);
@@ -368,12 +675,143 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (json.publicChat) {
         setPublicChat(json.publicChat);
       }
-      showToast(`Καλωσήρθατε στην παρέα, ${data.firstName}! Το προφίλ σας δημιουργήθηκε! 🎉`, 'success');
+      showToast(`Καλωσήρθατε στην παρέα, ${data.firstName}! Η εγγραφή σας ολοκληρώθηκε! 🎉`, 'success');
       return true;
     } catch (e) {
       showToast('Σφάλμα σύνδεσης κατά την εγγραφή.', 'error');
       return false;
     }
+  };
+
+  const loginWithEmailPassword = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
+      const fbUser = cred.user;
+      const snap = await getDoc(doc(db, 'users', fbUser.uid));
+      if (snap.exists()) {
+        const d = snap.data();
+        const profile: UserProfile = {
+          id: fbUser.uid,
+          firstName: d.firstName || 'Μέλος',
+          lastName: d.lastName || 'Αείφαρον',
+          nickname: d.nickname || 'Food Lover',
+          email: fbUser.email || email.trim(),
+          avatarUrl: d.avatarUrl || DEMO_USERS[0].avatarUrl,
+          bio: d.bio || 'Μέλος της Αειφαριώτικης οικογένειας.',
+          topFoods: Array.isArray(d.topFoods) && d.topFoods.length === 3
+            ? [d.topFoods[0], d.topFoods[1], d.topFoods[2]]
+            : ['Σουβλάκι στα κάρβουνα', 'Παραδοσιακή πίτα', 'Gelato Φιστίκι'],
+          badge: (d.badge as any) || 'ΕΝΕΡΓΟΠΟΙΗΘΗΚΑ ΠΑΙΔΙΑ',
+          role: 'member',
+          favoriteRegions: ['Athens & Attica'],
+          spotsSubmittedCount: d.spotsSubmittedCount || 1,
+          reviewsCount: d.reviewsCount || 0,
+          joinedAt: new Date().toISOString().split('T')[0],
+          points: (d.spotsSubmittedCount || 1) * 100
+        };
+        setCurrentUser(profile);
+        showToast(`Καλωσήρθατε ξανά, ${profile.firstName}!`, 'success');
+      } else {
+        showToast('Συνδεθήκατε επιτυχώς!', 'success');
+      }
+      return { success: true };
+    } catch (err: any) {
+      if (err instanceof Error && err.message.includes('Missing or insufficient permissions')) {
+        handleFirestoreError(err, OperationType.GET, `users/${auth.currentUser?.uid || 'unknown'}`);
+      }
+      let msg = 'Λάθος email ή κωδικός πρόσβασης.';
+      if (err?.code === 'auth/operation-not-allowed') {
+        msg = 'Η σύνδεση με Email/Κωδικό χρειάζεται ενεργοποίηση στο Firebase Console (Authentication > Sign-in method).';
+      } else if (err?.code === 'auth/user-not-found' || err?.code === 'auth/invalid-credential') {
+        msg = 'Δεν βρέθηκε λογαριασμός με αυτά τα στοιχεία. Κάντε πρώτα Εγγραφή Νέου Μέλους!';
+      }
+      showToast(msg, 'error');
+      return { success: false, error: msg };
+    }
+  };
+
+  const signInWithProvider = async (providerName: 'google' | 'facebook' | 'instagram') => {
+    try {
+      const selectedProvider =
+        providerName === 'google'
+          ? googleProvider
+          : providerName === 'facebook'
+          ? facebookProvider
+          : instagramProvider;
+
+      const result = await signInWithPopup(auth, selectedProvider);
+      const fbUser = result.user;
+
+      // Check if user already has a profile in Firestore
+      const snap = await getDoc(doc(db, 'users', fbUser.uid));
+      if (snap.exists()) {
+        const d = snap.data();
+        const profile: UserProfile = {
+          id: fbUser.uid,
+          firstName: d.firstName || 'Μέλος',
+          lastName: d.lastName || 'Αείφαρον',
+          nickname: d.nickname || 'Food Lover',
+          email: fbUser.email || '',
+          avatarUrl: d.avatarUrl || fbUser.photoURL || DEMO_USERS[0].avatarUrl,
+          bio: d.bio || 'Μέλος της Αειφαριώτικης οικογένειας.',
+          topFoods: Array.isArray(d.topFoods) && d.topFoods.length === 3
+            ? [d.topFoods[0], d.topFoods[1], d.topFoods[2]]
+            : ['Σουβλάκι στα κάρβουνα', 'Παραδοσιακή πίτα', 'Gelato Φιστίκι'],
+          badge: (d.badge as any) || 'ΕΝΕΡΓΟΠΟΙΗΘΗΚΑ ΠΑΙΔΙΑ',
+          role: 'member',
+          favoriteRegions: ['Athens & Attica'],
+          spotsSubmittedCount: d.spotsSubmittedCount || 1,
+          reviewsCount: d.reviewsCount || 0,
+          joinedAt: new Date().toISOString().split('T')[0],
+          points: (d.spotsSubmittedCount || 1) * 100
+        };
+        setCurrentUser(profile);
+        showToast(`Συνδεθήκατε επιτυχώς μέσω ${providerName.toUpperCase()}, ${profile.firstName}!`, 'success');
+        return { success: true, needsProfileCompletion: false };
+      }
+
+      // New user via OAuth: prefill their registration profile fields so they can complete their Aeifaron profile
+      const displayParts = (fbUser.displayName || '').trim().split(' ');
+      const firstName = displayParts[0] || '';
+      const lastName = displayParts.slice(1).join(' ') || '';
+
+      showToast(
+        `Επιτυχής ταυτοποίηση με ${providerName.toUpperCase()}! Συμπληρώστε τα 3 αγαπημένα σας φαγητά για να ολοκληρωθεί το προφίλ σας.`,
+        'info'
+      );
+
+      return {
+        success: true,
+        needsProfileCompletion: true,
+        prefill: {
+          firstName,
+          lastName,
+          email: fbUser.email || '',
+          avatarUrl: fbUser.photoURL || DEMO_USERS[1].avatarUrl,
+          authProvider: providerName
+        }
+      };
+    } catch (err: any) {
+      if (err instanceof Error && err.message.includes('Missing or insufficient permissions')) {
+        handleFirestoreError(err, OperationType.GET, `users/${auth.currentUser?.uid || 'unknown'}`);
+      }
+      let errorMsg = `Σφάλμα σύνδεσης με ${providerName.toUpperCase()}.`;
+      if (err?.code === 'auth/operation-not-allowed') {
+        errorMsg = `Ο πάροχος ${providerName.toUpperCase()} χρειάζεται ενεργοποίηση στο Firebase Console (Authentication > Sign-in method).`;
+      } else if (err?.code === 'auth/popup-closed-by-user') {
+        errorMsg = 'Το παράθυρο σύνδεσης έκλεισε πριν ολοκληρωθεί η είσοδος.';
+      }
+      showToast(errorMsg, 'error');
+      return { success: false, error: errorMsg };
+    }
+  };
+
+  const logoutUser = async () => {
+    try {
+      await firebaseSignOut(auth);
+      setIsFirebaseAuthenticated(false);
+      showToast('Αποσυνδεθήκατε από τον λογαριασμό σας.', 'info');
+    } catch (e) {}
   };
 
   const sendDirectMessage = async (receiverId: string, content: string) => {
@@ -620,8 +1058,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         currentUser,
         setCurrentUser,
         allUsers,
+        isFirebaseAuthenticated,
         updateCurrentUserProfile,
         registerNewMember,
+        loginWithEmailPassword,
+        signInWithProvider,
+        logoutUser,
         selectedMemberProfile,
         setSelectedMemberProfile,
         profileComments,

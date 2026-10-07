@@ -11,11 +11,11 @@ import {
   MessageSquare,
   Send,
   Trophy,
-  CornerDownRight
+  CornerDownRight,
+  ChevronDown
 } from 'lucide-react';
 
-const CATEGORIES: SpotCategory[] = [
-  'Παραλίες',
+const DROPDOWN_CATEGORIES: SpotCategory[] = [
   'Εκδρομές',
   'Μηχανάδες',
   'Authentic Souvlaki',
@@ -233,14 +233,14 @@ export const HeroBanner: React.FC = () => {
             </div>
           </div>
 
-          {/* 2. Category Pills directly below Search — Wrapped visibly on Mobile & Desktop (No hidden horizontal scroll needed!) */}
-          <div className="flex flex-wrap items-center gap-2 pt-1">
+          {/* 2. Category Selection: Όλες οι Επιλογές, Παραλίες, and Drop-down Menu for the 12 Food & Experience Categories */}
+          <div className="flex flex-wrap items-center gap-2.5 pt-1">
             <button
               onClick={() => {
                 setSelectedCategory('ALL');
                 setSelectedMacroGroup('ALL');
               }}
-              className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              className={`px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                 selectedCategory === 'ALL' && selectedMacroGroup === 'ALL'
                   ? 'bg-[#243B35] text-[#F1E9D2] border-2 border-[#6B8E7B] shadow-md'
                   : 'bg-[#F1E9D2] text-[#243B35] border border-[#6B8E7B] hover:bg-[#B7C9B1]'
@@ -249,30 +249,79 @@ export const HeroBanner: React.FC = () => {
               🌟 {language === 'el' ? 'Όλες οι Επιλογές' : 'All Choices'}
             </button>
 
-            {CATEGORIES.map((cat) => {
-              const config = CATEGORY_TRANSLATIONS[cat] || { el: cat, en: cat, icon: '📍' };
-              const isSelected = selectedCategory === cat;
-              const isBeachCat = cat === 'Παραλίες';
+            {/* Παραλίες Button */}
+            <button
+              onClick={() => setSelectedCategory(selectedCategory === 'Παραλίες' ? 'ALL' : 'Παραλίες')}
+              className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer border ${
+                selectedCategory === 'Παραλίες'
+                  ? 'bg-[#FF6B54] text-white border-[#14B8A6] ring-2 ring-[#14B8A6] shadow-md'
+                  : 'bg-[#14B8A6] text-white border-[#FF6B54] hover:bg-[#FF6B54]'
+              }`}
+            >
+              <span>{CATEGORY_TRANSLATIONS['Παραλίες'].icon}</span>
+              <span>{language === 'el' ? CATEGORY_TRANSLATIONS['Παραλίες'].el : CATEGORY_TRANSLATIONS['Παραλίες'].en}</span>
+            </button>
 
-              return (
+            {/* Drop-down Menu for the 12 Categories */}
+            <div className="relative min-w-[250px] sm:min-w-[300px]">
+              <select
+                value={DROPDOWN_CATEGORIES.includes(selectedCategory as SpotCategory) ? selectedCategory : 'ALL'}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSelectedCategory(val === 'ALL' ? 'ALL' : (val as SpotCategory));
+                }}
+                aria-label={language === 'el' ? 'Επιλογή Κατηγορίας Food Spot & Εμπειρίας' : 'Select Food Spot & Experience Category'}
+                className={`w-full pl-3.5 pr-9 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer border appearance-none focus:outline-none focus:ring-2 focus:ring-[#A44A3F] ${
+                  DROPDOWN_CATEGORIES.includes(selectedCategory as SpotCategory)
+                    ? 'bg-[#6B2F2F] text-[#F4D6C6] border-[#D88C72] ring-2 ring-[#A44A3F] shadow-md'
+                    : 'bg-[#A44A3F] text-[#F4D6C6] border-[#D88C72]/70 hover:bg-[#6B2F2F] shadow-sm'
+                }`}
+              >
+                <option value="ALL" className="bg-[#6B2F2F] text-[#F4D6C6] font-bold">
+                  🍽️ {language === 'el' ? 'Επιλέξτε Κατηγορία Food Spot / Εμπειρίας...' : 'Select Food Spot / Experience Category...'}
+                </option>
+                {DROPDOWN_CATEGORIES.map((cat) => {
+                  const config = CATEGORY_TRANSLATIONS[cat] || { el: cat, en: cat, icon: '📍' };
+                  return (
+                    <option key={cat} value={cat} className="bg-[#6B2F2F] text-[#F4D6C6] font-bold">
+                      {config.icon} {language === 'el' ? config.el : config.en}
+                    </option>
+                  );
+                })}
+              </select>
+              <ChevronDown className="w-4 h-4 text-[#F4D6C6] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+          </div>
+
+          {/* Directly below the Drop-down Menu: Hit Spots βρέθηκαν & 💎 Μόνο Κρυφά Διαμάντια 💎 */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-1 text-xs font-bold text-[#243B35] dark:text-[#F1E9D2]">
+            <div className="flex items-center gap-3">
+              <span className="font-extrabold">
+                {spots.length} {t.spotsFound}
+              </span>
+              {activeFiltersCount > 0 && (
                 <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(isSelected ? 'ALL' : cat)}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer border ${
-                    isBeachCat
-                      ? isSelected
-                        ? 'bg-[#FF6B54] text-white border-[#14B8A6] ring-2 ring-[#14B8A6] shadow-md'
-                        : 'bg-[#14B8A6] text-white border-[#FF6B54] hover:bg-[#FF6B54]'
-                      : isSelected
-                      ? 'bg-[#6B2F2F] text-[#F4D6C6] border-[#D88C72] ring-2 ring-[#A44A3F] shadow-md'
-                      : 'bg-[#A44A3F] text-[#F4D6C6] border-[#D88C72]/60 hover:bg-[#6B2F2F]'
-                  }`}
+                  onClick={clearAllFilters}
+                  className="text-[#6B2F2F] dark:text-[#F4D6C6] hover:underline flex items-center gap-1 cursor-pointer font-extrabold"
                 >
-                  <span>{config.icon}</span>
-                  <span>{language === 'el' ? config.el : config.en}</span>
+                  <X className="w-3.5 h-3.5" />
+                  {t.clearFilters} ({activeFiltersCount})
                 </button>
-              );
-            })}
+              )}
+            </div>
+
+            {/* Secret Gems Toggle */}
+            <button
+              onClick={() => setSecretGemsOnly(!secretGemsOnly)}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border text-xs font-extrabold transition-all cursor-pointer ${
+                secretGemsOnly
+                  ? 'bg-[#6B2F2F] text-[#F4D6C6] border-[#D88C72]'
+                  : 'bg-[#243B35] text-[#F1E9D2] border-[#6B8E7B] hover:bg-[#6B8E7B]'
+              }`}
+            >
+              <span>💎</span>
+              <span>{t.secretGemsOnly}</span>
+            </button>
           </div>
         </div>
 
@@ -615,37 +664,6 @@ export const HeroBanner: React.FC = () => {
             </div>
 
           </div>
-        </div>
-
-        {/* Filter Summary & Quick Toggles */}
-        <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-bold text-[#243B35] dark:text-[#F1E9D2]">
-          <div className="flex items-center gap-3">
-            <span className="font-extrabold">
-              {spots.length} {t.spotsFound}
-            </span>
-            {activeFiltersCount > 0 && (
-              <button
-                onClick={clearAllFilters}
-                className="text-[#6B2F2F] dark:text-[#F4D6C6] hover:underline flex items-center gap-1 cursor-pointer font-extrabold"
-              >
-                <X className="w-3.5 h-3.5" />
-                {t.clearFilters} ({activeFiltersCount})
-              </button>
-            )}
-          </div>
-
-          {/* Secret Gems Toggle */}
-          <button
-            onClick={() => setSecretGemsOnly(!secretGemsOnly)}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border text-xs font-extrabold transition-all cursor-pointer ${
-              secretGemsOnly
-                ? 'bg-[#6B2F2F] text-[#F4D6C6] border-[#D88C72]'
-                : 'bg-[#243B35] text-[#F1E9D2] border-[#6B8E7B] hover:bg-[#6B8E7B]'
-            }`}
-          >
-            <span>💎</span>
-            <span>{t.secretGemsOnly}</span>
-          </button>
         </div>
 
       </div>
