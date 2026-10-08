@@ -1,4 +1,4 @@
-import { HitSpot, UserProfile, Review } from '../types';
+import { HitSpot, UserProfile, Review, AppNotification } from '../types';
 
 export const DEMO_USERS: UserProfile[] = [
   {
@@ -146,6 +146,9 @@ export const INITIAL_HIT_SPOTS: HitSpot[] = [
       'https://images.unsplash.com/photo-1570197788417-0e82375c9371?auto=format&fit=crop&w=1200&q=80',
       'https://images.unsplash.com/photo-1501443762994-82bd5dace89a?auto=format&fit=crop&w=1200&q=80'
     ],
+    youtubeVideoUrls: [
+      'https://www.youtube.com/watch?v=9f5qR-h_G7s'
+    ],
     rating: 4.9,
     reviewsCount: 28,
     createdAt: '2025-01-10T14:30:00Z',
@@ -174,6 +177,9 @@ export const INITIAL_HIT_SPOTS: HitSpot[] = [
       'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=1200&q=80',
       'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=1200&q=80',
       'https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?auto=format&fit=crop&w=1200&q=80'
+    ],
+    youtubeVideoUrls: [
+      'https://www.youtube.com/watch?v=r0tA7kY1mZc'
     ],
     rating: 4.95,
     reviewsCount: 64,
@@ -204,6 +210,9 @@ export const INITIAL_HIT_SPOTS: HitSpot[] = [
       'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1200&q=80',
       'https://images.unsplash.com/photo-1510629954389-c1e0da47d414?auto=format&fit=crop&w=1200&q=80'
     ],
+    youtubeVideoUrls: [
+      'https://www.youtube.com/watch?v=H2j5U-y_S1o'
+    ],
     rating: 5.0,
     reviewsCount: 47,
     createdAt: '2025-01-18T16:20:00Z',
@@ -231,6 +240,9 @@ export const INITIAL_HIT_SPOTS: HitSpot[] = [
     galleryUrls: [
       'https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?auto=format&fit=crop&w=1200&q=80',
       'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&w=1200&q=80'
+    ],
+    youtubeVideoUrls: [
+      'https://www.youtube.com/watch?v=kY7w9X8vQ1M'
     ],
     rating: 4.88,
     reviewsCount: 33,
@@ -260,6 +272,9 @@ export const INITIAL_HIT_SPOTS: HitSpot[] = [
       'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=1200&q=80',
       'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=1200&q=80'
     ],
+    youtubeVideoUrls: [
+      'https://www.youtube.com/watch?v=mN5z9wP2k0I'
+    ],
     rating: 4.96,
     reviewsCount: 52,
     createdAt: '2025-02-01T08:15:00Z',
@@ -287,6 +302,9 @@ export const INITIAL_HIT_SPOTS: HitSpot[] = [
     galleryUrls: [
       'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1200&q=80',
       'https://images.unsplash.com/photo-1547496502-affa22d38842?auto=format&fit=crop&w=1200&q=80'
+    ],
+    youtubeVideoUrls: [
+      'https://www.youtube.com/watch?v=vL4c8rT9n1E'
     ],
     rating: 4.93,
     reviewsCount: 39,
@@ -316,6 +334,9 @@ export const INITIAL_HIT_SPOTS: HitSpot[] = [
       'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80',
       'https://images.unsplash.com/photo-1519046904884-53103b34b206?auto=format&fit=crop&w=1200&q=80'
     ],
+    youtubeVideoUrls: [
+      'https://www.youtube.com/watch?v=5b1t8wM6v2Q'
+    ],
     rating: 4.98,
     reviewsCount: 44,
     createdAt: '2025-02-08T12:00:00Z',
@@ -344,12 +365,66 @@ export const INITIAL_HIT_SPOTS: HitSpot[] = [
       'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80',
       'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=80'
     ],
+    youtubeVideoUrls: [
+      'https://www.youtube.com/watch?v=2v4x9zL8p3K'
+    ],
     rating: 4.99,
     reviewsCount: 58,
     createdAt: '2025-02-10T07:30:00Z',
     tags: ['Τοποθεσίες', 'Φαράγγι Σαμαριάς', 'Λευκά Όρη', 'Φύση & Πεζοπορία'],
     insiderTips: 'Ξεκινήστε την κατάβαση από το Ξυλόσκαλο στις 07:00 π.μ. με καλά ορειβατικά παπούτσια. Υπάρχουν πηγές με πόσιμο νερό σε όλη τη διαδρομή!',
     verifiedSpot: true
+  }
+];
+
+export const INITIAL_NOTIFICATIONS: AppNotification[] = [
+  {
+    id: 'notif-1',
+    targetUserId: 'user-1',
+    type: 'comment_on_shared_spot',
+    spotId: 'spot-4',
+    spotTitle: 'Θαλασσινό Αγέρι (Ταμπακαριά Χανιά)',
+    spotCategory: 'Seafood & Psarotaverna',
+    actorId: 'user-2',
+    actorName: 'Έλενα Βασιλείου',
+    actorAvatar: DEMO_USERS[1].avatarUrl,
+    messageEl: 'Η Έλενα Βασιλείου σχολίασε στο Spot που μοιραστήκατε: «Θαλασσινό Αγέρι (Ταμπακαριά Χανιά)»',
+    messageEn: 'Elena Vasileiou commented on your shared spot: "Thalassino Ageri (Tabakaria)"',
+    snippet: 'Το φαγκρί στα κάρβουνα δίπλα στο κύμα ήταν ανεπανάληπτο! ★ 5.0',
+    read: false,
+    createdAt: 'Πριν 10 λεπτά'
+  },
+  {
+    id: 'notif-2',
+    targetUserId: 'ALL',
+    type: 'favorite_spot_updated',
+    spotId: 'spot-3',
+    spotTitle: 'Ντουνιάς - Παραδοσιακή Κρητική Γαστρονομία (Δρακώνα)',
+    spotCategory: 'Hidden Mountain Taverna',
+    actorId: 'user-3',
+    actorName: 'Μανώλης Κατσανεβάκης',
+    actorAvatar: DEMO_USERS[2].avatarUrl,
+    messageEl: 'Αγαπημένο Spot Ενημερώθηκε: «Ντουνιάς - Παραδοσιακή Κρητική Γαστρονομία» (Νέο YouTube Video & Σημειώσεις)',
+    messageEn: 'Favorite Culinary Spot Updated: "Dounias Traditional Gastronomy" (New YouTube Video & Notes)',
+    snippet: 'Προστέθηκε νέο βίντεο από τις ξυλόσομπες και τα πήλινα τσικάλια στη Δρακώνα!',
+    read: false,
+    createdAt: 'Πριν 25 λεπτά'
+  },
+  {
+    id: 'notif-3',
+    targetUserId: 'user-1',
+    type: 'comment_on_shared_spot',
+    spotId: 'spot-6',
+    spotTitle: 'Αξιώτισσα - Μεζεδοπωλείο (Καστράκι Νάξος)',
+    spotCategory: 'Modern Greek',
+    actorId: 'user-5',
+    actorName: 'Σοφία Νικολάου',
+    actorAvatar: DEMO_USERS[4].avatarUrl,
+    messageEl: 'Η Σοφία Νικολάου άφησε νέα κριτική στο Spot σας: «Αξιώτισσα - Μεζεδοπωλείο (Καστράκι Νάξος)»',
+    messageEn: 'Sofia Nikolaou left a new review on your shared spot: "Axiotissa Mezedopoleio (Naxos)"',
+    snippet: 'Τα μοσχαρίσια μάγουλα και οι πατάτες Νάξου σε ελαιόλαδο είναι όνειρο! ★ 5.0',
+    read: false,
+    createdAt: 'Πριν 1 ώρα'
   }
 ];
 

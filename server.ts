@@ -32,12 +32,13 @@ function getAi(): GoogleGenAI | null {
 }
 
 // In-memory persistent database store initialized with initial data
-import { INITIAL_HIT_SPOTS, INITIAL_REVIEWS, DEMO_USERS } from "./src/data/mockData.ts";
-import { DirectMessage, PublicChatMessage, PublicChatState, UserProfile } from "./src/types.ts";
+import { INITIAL_HIT_SPOTS, INITIAL_REVIEWS, DEMO_USERS, INITIAL_NOTIFICATIONS } from "./src/data/mockData.ts";
+import { DirectMessage, PublicChatMessage, PublicChatState, UserProfile, AppNotification } from "./src/types.ts";
 
 let hitSpots = [...INITIAL_HIT_SPOTS];
 let reviews = [...INITIAL_REVIEWS];
 let users: UserProfile[] = [...DEMO_USERS];
+let notifications: AppNotification[] = [...INITIAL_NOTIFICATIONS];
 
 // Real-time Server-Sent Events (SSE) clients for instant multi-user sync
 const sseClients = new Set<express.Response>();
@@ -164,7 +165,8 @@ app.get("/api/events", (req, res) => {
     users,
     spots: hitSpots,
     publicChat: getPublicChatState(),
-    directMessages
+    directMessages,
+    notifications
   })}\n\n`);
 
   req.on("close", () => {
@@ -402,6 +404,7 @@ app.post("/api/spots", async (req, res) => {
     priceLevel,
     coverImageUrl,
     galleryUrls,
+    youtubeVideoUrls,
     authorId,
     insiderTips,
     coordinates,
@@ -472,6 +475,10 @@ Description: "${finalWhy}"`,
     coverImageUrl ||
     "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=80";
 
+  const ytUrls = Array.isArray(youtubeVideoUrls)
+    ? youtubeVideoUrls.filter((u) => typeof u === "string" && u.trim().length > 0)
+    : [];
+
   const newSpot = {
     id: `spot-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
     authorId: author.id,
@@ -490,6 +497,7 @@ Description: "${finalWhy}"`,
     priceLevel: priceLevel || "10-15€",
     coverImageUrl: defaultCover,
     galleryUrls: Array.isArray(galleryUrls) && galleryUrls.length > 0 ? galleryUrls : [defaultCover],
+    youtubeVideoUrls: ytUrls,
     rating: 5.0,
     reviewsCount: 1,
     createdAt: new Date().toISOString(),
@@ -507,6 +515,91 @@ Description: "${finalWhy}"`,
   broadcastEvent("spot:created", { spot: newSpot, spots: hitSpots, users });
 
   res.status(201).json(newSpot);
+});
+
+// Update existing spot (e.g. adding YouTube video, updating insider tips, dishes, or price) & alert members who favorited it
+app.put("/api/spots/:id", (req, res) => {
+  const spotId = req.params.id;
+  const idx = hitSpots.findIndex((s) => s.id === spotId);
+  if (idx === -1) {
+    return res.status(404).json({ error: "Spot not found" });
+  }
+
+  const spot = hitSpots[idx];
+  const {
+    whyIsItSpecial,
+    whyIsItSpecialEl,
+    signatureDishes,
+    signatureDishesEl,
+    insiderTips,
+    priceLevel,
+    youtubeVideoUrls,
+    updatedByUserId,
+    updateSummary
+  } = req.body;
+
+  const actor = users.find((u) => u.id === updatedByUserId) || spot.author || users[0];
+
+  const updatedSpot = {
+    ...spot,
+    whyIsItSpecial: whyIsItSpecial !== undefined ? whyIsItSpecial : spot.whyIsItSpecial,
+    whyIsItSpecialEl: whyIsItSpecialEl !== undefined ? whyIsItSpecialEl : spot.whyIsItSpecialEl,
+    signatureDishes: Array.isArray(signatureDishes) ? signatureDishes : spot.signatureDishes,
+    signatureDishesEl: Array.isArray(signatureDishesEl) ? signatureDishesEl : spot.signatureDishesEl,
+    insiderTips: insiderTips !== undefined ? insiderTips : spot.insiderTips,
+    priceLevel: priceLevel !== undefined ? priceLevel : spot.priceLevel,
+    youtubeVideoUrls: Array.isArray(youtubeVideoUrls) ? youtubeVideoUrls : spot.youtubeVideoUrls
+  };
+
+  hitSpots[idx] = updatedSpot;
+
+  const spotDisplayTitle = updatedSpot.titleEl || updatedSpot.title;
+  const nowStr = new Date().toTimeString().slice(0, 5);
+  const summaryNote = updateSummary || "Ενημέρωση στοιχείων, προτάσεων ή YouTube Video του Spot";
+
+  const newNotif: AppNotification = {
+    id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+    targetUserId: "ALL",
+    type: "favorite_spot_updated",
+    spotId: updatedSpot.id,
+    spotTitle: spotDisplayTitle,
+    spotCategory: updatedSpot.category,
+    actorId: actor.id,
+    actorName: `${actor.firstName} ${actor.lastName}`,
+    actorAvatar: actor.avatarUrl,
+    messageEl: `Αγαπημένο Spot Ενημερώθηκε: «${spotDisplayTitle}» από ${actor.firstName} ${actor.lastName}`,
+    messageEn: `Favorite Spot Updated: "${spotDisplayTitle}" by ${actor.firstName} ${actor.lastName}`,
+    snippet: summaryNote,
+    read: false,
+    createdAt: nowStr
+  };
+
+  notifications.unshift(newNotif);
+  if (notifications.length > 80) notifications = notifications.slice(0, 80);
+
+  broadcastEvent("spot:updated", { spot: updatedSpot, spots: hitSpots, notification: newNotif });
+  broadcastEvent("notification:created", newNotif);
+
+  res.json({ spot: updatedSpot, notification: newNotif });
+});
+
+// Notifications API Endpoints
+app.get("/api/notifications", (_req, res) => {
+  res.json(notifications);
+});
+
+app.post("/api/notifications/mark-read", (req, res) => {
+  const { notificationId, userId, markAll } = req.body;
+  if (markAll) {
+    notifications = notifications.map((n) =>
+      !userId || n.targetUserId === userId || n.targetUserId === "ALL" ? { ...n, read: true } : n
+    );
+  } else if (notificationId) {
+    notifications = notifications.map((n) =>
+      n.id === notificationId ? { ...n, read: true } : n
+    );
+  }
+  res.json(notifications);
 });
 
 // Rule-based heuristic fallback check for culinary relevance
@@ -705,7 +798,33 @@ app.post("/api/spots/:id/reviews", async (req, res) => {
 
   author.reviewsCount += 1;
 
-  res.status(201).json({ review: newReview, moderation: moderationResult, spotUpdatedRating: spot.rating });
+  const spotDisplayTitle = spot.titleEl || spot.title;
+  const nowStr = new Date().toTimeString().slice(0, 5);
+
+  const commentNotif: AppNotification = {
+    id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+    targetUserId: spot.authorId,
+    type: "comment_on_shared_spot",
+    spotId: spot.id,
+    spotTitle: spotDisplayTitle,
+    spotCategory: spot.category,
+    actorId: author.id,
+    actorName: `${author.firstName} ${author.lastName}`,
+    actorAvatar: author.avatarUrl,
+    messageEl: `Ο/Η ${author.firstName} ${author.lastName} σχολίασε στο Spot που μοιραστήκατε: «${spotDisplayTitle}»`,
+    messageEn: `${author.firstName} ${author.lastName} commented on your shared spot: "${spotDisplayTitle}"`,
+    snippet: `${content.slice(0, 110)}${content.length > 110 ? "..." : ""} (★ ${rating}.0)`,
+    read: false,
+    createdAt: nowStr
+  };
+
+  notifications.unshift(commentNotif);
+  if (notifications.length > 80) notifications = notifications.slice(0, 80);
+
+  broadcastEvent("notification:created", commentNotif);
+  broadcastEvent("review:created", { review: newReview, spotId, spotUpdatedRating: spot.rating, notification: commentNotif });
+
+  res.status(201).json({ review: newReview, moderation: moderationResult, spotUpdatedRating: spot.rating, notification: commentNotif });
 });
 
 // Post reply to review
@@ -743,6 +862,30 @@ app.post("/api/reviews/:id/replies", async (req, res) => {
 
   if (!review.replies) review.replies = [];
   review.replies.push(newReply);
+
+  const parentSpot = hitSpots.find((s) => s.id === review.spotId);
+  if (parentSpot) {
+    const spotDisplayTitle = parentSpot.titleEl || parentSpot.title;
+    const nowStr = new Date().toTimeString().slice(0, 5);
+    const replyNotif: AppNotification = {
+      id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      targetUserId: parentSpot.authorId,
+      type: "reply_on_comment",
+      spotId: parentSpot.id,
+      spotTitle: spotDisplayTitle,
+      spotCategory: parentSpot.category,
+      actorId: author.id,
+      actorName: `${author.firstName} ${author.lastName}`,
+      actorAvatar: author.avatarUrl,
+      messageEl: `Ο/Η ${author.firstName} ${author.lastName} απάντησε σε σχόλιο στο Spot «${spotDisplayTitle}»`,
+      messageEn: `${author.firstName} ${author.lastName} replied to a comment on "${spotDisplayTitle}"`,
+      snippet: content.slice(0, 110),
+      read: false,
+      createdAt: nowStr
+    };
+    notifications.unshift(replyNotif);
+    broadcastEvent("notification:created", replyNotif);
+  }
 
   res.status(201).json(newReply);
 });

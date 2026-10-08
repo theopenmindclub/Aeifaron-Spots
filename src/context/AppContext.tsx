@@ -12,10 +12,11 @@ import {
   DirectMessage,
   PublicChatState,
   SearchMacroGroup,
+  AppNotification,
   getGamificationBadge
 } from '../types';
 import { translations, Translations } from '../i18n/translations';
-import { INITIAL_HIT_SPOTS, INITIAL_REVIEWS, DEMO_USERS } from '../data/mockData';
+import { INITIAL_HIT_SPOTS, INITIAL_REVIEWS, DEMO_USERS, INITIAL_NOTIFICATIONS } from '../data/mockData';
 import {
   auth,
   db,
@@ -124,9 +125,18 @@ interface AppContextType {
   
   // Actions
   createHitSpot: (spotData: Partial<HitSpot>) => Promise<{ success: boolean; spot?: HitSpot; error?: string }>;
+  updateHitSpot: (spotId: string, updates: Partial<HitSpot> & { updateSummary?: string }) => Promise<{ success: boolean; spot?: HitSpot; error?: string }>;
   addReview: (spotId: string, content: string, rating: number, signatureOrdered?: string) => Promise<{ success: boolean; review?: Review; moderation?: ModerationResult; error?: string }>;
   addReply: (reviewId: string, content: string) => Promise<{ success: boolean; error?: string }>;
   moderateCommentText: (content: string, spotTitle: string, category: string) => Promise<ModerationResult>;
+
+  // Favorites & In-App Notification Center
+  favoriteSpotIds: string[];
+  toggleFavoriteSpot: (spotId: string) => void;
+  notifications: AppNotification[];
+  unreadNotificationsCount: number;
+  markNotificationAsRead: (notificationId: string) => void;
+  markAllNotificationsAsRead: () => void;
   
   // Toast notifications
   toastMessage: { text: string; type: 'success' | 'error' | 'info' } | null;
@@ -154,6 +164,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   
   const [spots, setSpots] = useState<HitSpot[]>(INITIAL_HIT_SPOTS);
   const [reviews, setReviews] = useState<Review[]>(INITIAL_REVIEWS);
+  const [notifications, setNotifications] = useState<AppNotification[]>(INITIAL_NOTIFICATIONS);
+  const [favoriteSpotIds, setFavoriteSpotIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('hitspots_favorites');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {}
+    return ['spot-1', 'spot-3', 'spot-4'];
+  });
   
   const [activeView, setActiveView] = useState<'explore' | 'map' | 'community' | 'onboarding' | 'my-spots'>('explore');
   const [selectedSpot, setSelectedSpot] = useState<HitSpot | null>(null);
@@ -319,6 +340,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (Array.isArray(parsed.directMessages)) {
           setDirectMessages(parsed.directMessages);
         }
+        if (Array.isArray(parsed.notifications)) {
+          setNotifications(parsed.notifications);
+        }
       } catch (err) {}
     });
 
@@ -376,6 +400,55 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (prev.some((m) => m.id === newDm.id)) return prev;
           return [...prev, newDm];
         });
+      } catch (err) {}
+    });
+
+    evtSource.addEventListener('spot:updated', (e: MessageEvent) => {
+      try {
+        const parsed = JSON.parse(e.data);
+        if (Array.isArray(parsed.spots)) {
+          setSpots(parsed.spots);
+        } else if (parsed.spot) {
+          setSpots((prev) => prev.map((s) => (s.id === parsed.spot.id ? parsed.spot : s)));
+        }
+        if (parsed.spot) {
+          setSelectedSpot((prev) => (prev && prev.id === parsed.spot.id ? parsed.spot : prev));
+        }
+      } catch (err) {}
+    });
+
+    evtSource.addEventListener('notification:created', (e: MessageEvent) => {
+      try {
+        const newNotif: AppNotification = JSON.parse(e.data);
+        setNotifications((prev) => {
+          if (prev.some((n) => n.id === newNotif.id)) return prev;
+          return [newNotif, ...prev];
+        });
+      } catch (err) {}
+    });
+
+    evtSource.addEventListener('review:created', (e: MessageEvent) => {
+      try {
+        const parsed = JSON.parse(e.data);
+        if (parsed.review) {
+          setReviews((prev) => {
+            if (prev.some((r) => r.id === parsed.review.id)) return prev;
+            return [parsed.review, ...prev];
+          });
+        }
+        if (parsed.spotId) {
+          setSpots((prev) =>
+            prev.map((s) =>
+              s.id === parsed.spotId
+                ? {
+                    ...s,
+                    rating: parsed.spotUpdatedRating || s.rating,
+                    reviewsCount: s.reviewsCount + 1
+                  }
+                : s
+            )
+          );
+        }
       } catch (err) {}
     });
 
@@ -1061,6 +1134,93 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const toggleFavoriteSpot = (spotId: string) => {
+    const spot = spots.find((s) => s.id === spotId);
+    const spotTitle = spot ? (spot.titleEl || spot.title) : 'Spot';
+    setFavoriteSpotIds((prev) => {
+      const isFav = prev.includes(spotId);
+      const next = isFav ? prev.filter((id) => id !== spotId) : [...prev, spotId];
+      try {
+        localStorage.setItem('hitspots_favorites', JSON.stringify(next));
+      } catch {}
+      showToast(
+        isFav
+          ? `Το «${spotTitle}» αφαιρέθηκε από τα Αγαπημένα σας Spots.`
+          : `Το «${spotTitle}» προστέθηκε στα Αγαπημένα σας! Θα λαμβάνετε ειδοποιήσεις όταν ενημερώνεται. ❤️`,
+        isFav ? 'info' : 'success'
+      );
+      return next;
+    });
+  };
+
+  const updateHitSpot = async (
+    spotId: string,
+    updates: Partial<HitSpot> & { updateSummary?: string }
+  ): Promise<{ success: boolean; spot?: HitSpot; error?: string }> => {
+    try {
+      const res = await fetch(`/api/spots/${spotId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...updates,
+          updatedByUserId: currentUser.id
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        return { success: false, error: data.error || 'Failed to update spot' };
+      }
+
+      const updatedSpot: HitSpot = data.spot || data;
+      setSpots((prev) => prev.map((s) => (s.id === spotId ? updatedSpot : s)));
+      if (selectedSpot && selectedSpot.id === spotId) {
+        setSelectedSpot(updatedSpot);
+      }
+      if (data.notification) {
+        setNotifications((prev) => {
+          if (prev.some((n) => n.id === data.notification.id)) return prev;
+          return [data.notification, ...prev];
+        });
+      }
+
+      showToast('Το Spot ενημερώθηκε και στάλθηκε ειδοποίηση στα μέλη που το έχουν στα Αγαπημένα τους! 🔔', 'success');
+      return { success: true, spot: updatedSpot };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  // Filter notifications relevant to currentUser:
+  // 1) Comments or replies on spots shared by currentUser (or targeted to currentUser)
+  // 2) Updates or comments on spots in currentUser's favoriteSpotIds
+  const relevantNotifications = notifications.filter((n) => {
+    const isMySharedSpot = spots.some((s) => s.id === n.spotId && s.authorId === currentUser.id);
+    const isMyFavoriteSpot = favoriteSpotIds.includes(n.spotId);
+    const isTargetedToMe = n.targetUserId === currentUser.id;
+    const isGlobalFavoriteUpdate = n.type === 'favorite_spot_updated' && (isMyFavoriteSpot || n.targetUserId === 'ALL');
+    return isTargetedToMe || isMySharedSpot || isMyFavoriteSpot || isGlobalFavoriteUpdate;
+  });
+
+  const unreadNotificationsCount = relevantNotifications.filter((n) => !n.read).length;
+
+  const markNotificationAsRead = (notificationId: string) => {
+    setNotifications((prev) => prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n)));
+    fetch('/api/notifications/mark-read', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ notificationId, userId: currentUser.id })
+    }).catch(() => {});
+  };
+
+  const markAllNotificationsAsRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    fetch('/api/notifications/mark-read', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ markAll: true, userId: currentUser.id })
+    }).catch(() => {});
+  };
+
   const t = translations[language];
 
   return (
@@ -1117,9 +1277,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         secretGemsOnly,
         setSecretGemsOnly,
         createHitSpot,
+        updateHitSpot,
         addReview,
         addReply,
         moderateCommentText,
+        favoriteSpotIds,
+        toggleFavoriteSpot,
+        notifications: relevantNotifications,
+        unreadNotificationsCount,
+        markNotificationAsRead,
+        markAllNotificationsAsRead,
         toastMessage,
         showToast
       }}

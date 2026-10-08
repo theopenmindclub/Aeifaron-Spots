@@ -229,6 +229,28 @@ export type GreekRegion =
   | 'Dodecanese (Rhodes/Kos)' 
   | 'Epirus & Zagori';
 
+export type AppNotificationType =
+  | 'comment_on_shared_spot'
+  | 'favorite_spot_updated'
+  | 'reply_on_comment';
+
+export interface AppNotification {
+  id: string;
+  targetUserId: string;
+  type: AppNotificationType;
+  spotId: string;
+  spotTitle: string;
+  spotCategory?: SpotCategory;
+  actorId: string;
+  actorName: string;
+  actorAvatar: string;
+  messageEl: string;
+  messageEn: string;
+  snippet?: string;
+  read: boolean;
+  createdAt: string;
+}
+
 export interface HitSpot {
   id: string;
   authorId: string;
@@ -250,6 +272,7 @@ export interface HitSpot {
   priceLevel: string;
   coverImageUrl: string;
   galleryUrls: string[];
+  youtubeVideoUrls?: string[];
   rating: number;
   reviewsCount: number;
   helpfulVotes?: number;

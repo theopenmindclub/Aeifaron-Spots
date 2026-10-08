@@ -98,6 +98,7 @@ export const CreateSpotModal: React.FC = () => {
   const [priceLevel, setPriceLevel] = useState<PriceRange>('10-15€');
   const [coverImageUrl, setCoverImageUrl] = useState(PHOTO_PRESETS[0].url);
   const [insiderTips, setInsiderTips] = useState('');
+  const [youtubeVideoUrl, setYoutubeVideoUrl] = useState('');
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isStreetViewOpen, setIsStreetViewOpen] = useState(false);
@@ -153,6 +154,7 @@ export const CreateSpotModal: React.FC = () => {
       priceLevel,
       coverImageUrl,
       galleryUrls: [coverImageUrl],
+      youtubeVideoUrls: youtubeVideoUrl.trim() ? [youtubeVideoUrl.trim()] : [],
       tags: [category, macroGroup, region.split(' ')[0]],
       insiderTips
     };
@@ -468,6 +470,20 @@ export const CreateSpotModal: React.FC = () => {
               }
               className="w-full px-4 py-3 rounded-xl bg-white dark:bg-[#231f3a] border-2 border-[#A9A1D1] dark:border-[#625B8C] text-[#302B4D] dark:text-[#E8E4F3] text-sm font-medium focus:ring-2 focus:ring-[#625B8C] focus:outline-none"
               required
+            />
+          </div>
+
+          {/* Optional YouTube Video URL */}
+          <div>
+            <label className="block text-xs font-extrabold uppercase tracking-wider text-[#302B4D] dark:text-[#A9A1D1] mb-1.5">
+              {language === 'el' ? 'YouTube Video από το μέρος (Προαιρετικό)' : 'YouTube Video URL (Optional)'}
+            </label>
+            <input
+              type="url"
+              value={youtubeVideoUrl}
+              onChange={(e) => setYoutubeVideoUrl(e.target.value)}
+              placeholder="https://www.youtube.com/watch?v=..."
+              className="w-full px-4 py-3 rounded-xl bg-white dark:bg-[#231f3a] border-2 border-[#A9A1D1] dark:border-[#625B8C] text-[#302B4D] dark:text-[#E8E4F3] text-sm font-medium focus:ring-2 focus:ring-[#625B8C] focus:outline-none"
             />
           </div>
 

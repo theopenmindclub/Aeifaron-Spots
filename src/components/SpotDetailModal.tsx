@@ -20,9 +20,24 @@ import {
   Image as ImageIcon,
   Check,
   Camera,
-  Link2
+  Link2,
+  Heart,
+  Youtube,
+  Plus,
+  Edit3
 } from 'lucide-react';
 import { motion } from 'motion/react';
+
+function extractYouTubeEmbedUrl(url: string): string | null {
+  if (!url) return null;
+  const trimmed = url.trim();
+  const regExp = /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/i;
+  const match = trimmed.match(regExp);
+  if (match && match[1]) {
+    return `https://www.youtube.com/embed/${match[1]}`;
+  }
+  return null;
+}
 
 export const SpotDetailModal: React.FC = () => {
   const { 
@@ -34,6 +49,9 @@ export const SpotDetailModal: React.FC = () => {
     currentUser, 
     addReview, 
     addReply, 
+    updateHitSpot,
+    favoriteSpotIds,
+    toggleFavoriteSpot,
     setLightboxUrl,
     showToast 
   } = useApp();
@@ -57,9 +75,18 @@ export const SpotDetailModal: React.FC = () => {
   // Street view guide modal state
   const [isStreetViewOpen, setIsStreetViewOpen] = useState(false);
 
+  // Add YouTube Video / Update Spot state
+  const [isAddingYoutube, setIsAddingYoutube] = useState(false);
+  const [newYoutubeUrl, setNewYoutubeUrl] = useState('');
+  const [isEditingSpotInfo, setIsEditingSpotInfo] = useState(false);
+  const [editedInsiderTip, setEditedInsiderTip] = useState('');
+  const [isSavingSpotUpdate, setIsSavingSpotUpdate] = useState(false);
+
   if (!selectedSpot) return null;
 
+  const isFavorite = favoriteSpotIds.includes(selectedSpot.id);
   const isBeach = selectedSpot.category === 'Παραλίες';
+  const isLocation = selectedSpot.category === 'Τοποθεσίες';
   const spotReviews = reviews.filter((r) => r.spotId === selectedSpot.id);
   const categoryConfig = CATEGORY_TRANSLATIONS[selectedSpot.category] || { el: selectedSpot.category, en: selectedSpot.category, icon: '🍽️' };
   const regionConfig = REGION_TRANSLATIONS[selectedSpot.region] || { el: selectedSpot.region, en: selectedSpot.region };
@@ -120,7 +147,46 @@ export const SpotDetailModal: React.FC = () => {
     showToast('Το link της καρτέλας αντιγράφηκε επιτυχώς!', 'success');
   };
 
+  const handleAddYoutubeVideo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = newYoutubeUrl.trim();
+    if (!clean) return;
+    if (!extractYouTubeEmbedUrl(clean) && !clean.includes('youtube.com') && !clean.includes('youtu.be')) {
+      showToast('Παρακαλώ εισάγετε έγκυρο σύνδεσμο YouTube (π.χ. https://www.youtube.com/watch?v=...)', 'error');
+      return;
+    }
+    setIsSavingSpotUpdate(true);
+    const existingVideos = Array.isArray(selectedSpot.youtubeVideoUrls) ? selectedSpot.youtubeVideoUrls : [];
+    const updatedVideos = [...existingVideos, clean];
+    const res = await updateHitSpot(selectedSpot.id, {
+      youtubeVideoUrls: updatedVideos,
+      updateSummary: `Προστέθηκε νέο YouTube Video από το μέρος «${displayTitle}»`
+    });
+    setIsSavingSpotUpdate(false);
+    if (res.success) {
+      setNewYoutubeUrl('');
+      setIsAddingYoutube(false);
+    }
+  };
+
+  const handleSaveInsiderUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editedInsiderTip.trim()) return;
+    setIsSavingSpotUpdate(true);
+    const res = await updateHitSpot(selectedSpot.id, {
+      insiderTips: editedInsiderTip.trim(),
+      updateSummary: `Νέα ενημέρωση Insider Tip: «${editedInsiderTip.trim().slice(0, 90)}»`
+    });
+    setIsSavingSpotUpdate(false);
+    if (res.success) {
+      setIsEditingSpotInfo(false);
+    }
+  };
+
   const mapEmbedUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${selectedSpot.coordinates.lng - 0.008}%2C${selectedSpot.coordinates.lat - 0.005}%2C${selectedSpot.coordinates.lng + 0.008}%2C${selectedSpot.coordinates.lat + 0.005}&layer=mapnik&marker=${selectedSpot.coordinates.lat}%2C${selectedSpot.coordinates.lng}`;
+  const youtubeVideos = Array.isArray(selectedSpot.youtubeVideoUrls)
+    ? selectedSpot.youtubeVideoUrls.filter((u) => typeof u === 'string' && u.trim().length > 0)
+    : [];
 
   return (
     <>
@@ -133,15 +199,19 @@ export const SpotDetailModal: React.FC = () => {
           className={`relative w-full max-w-4xl rounded-3xl shadow-2xl border-2 my-auto overflow-hidden flex flex-col max-h-[92vh] ${
             isBeach
               ? 'bg-[#FFFDF9] dark:bg-[#0F172A] border-[#14B8A6]'
+              : isLocation
+              ? 'bg-[#DCBDA7] dark:bg-[#5B3E36] border-[#6B715A]'
               : 'bg-[#F4D6C6] dark:bg-[#6B2F2F] border-[#A44A3F]'
           }`}
         >
           
-          {/* Sticky Header using [#6B2F2F #A44A3F #D88C72 #F4D6C6] for Food Spots */}
+          {/* Sticky Header */}
           <div
             className={`sticky top-0 z-20 flex items-center justify-between px-6 py-4 backdrop-blur-md border-b ${
               isBeach
                 ? 'bg-[#14B8A6] text-white border-[#FF6B54]'
+                : isLocation
+                ? 'bg-[#5B3E36] text-[#DCBDA7] border-[#6B715A]'
                 : 'bg-[#6B2F2F] text-[#F4D6C6] border-[#A44A3F]'
             }`}
           >
@@ -149,14 +219,20 @@ export const SpotDetailModal: React.FC = () => {
               <img
                 src={selectedSpot.author.avatarUrl}
                 alt={selectedSpot.author.firstName}
-                className="w-10 h-10 rounded-full object-cover ring-2 ring-[#D88C72] shrink-0"
+                className={`w-10 h-10 rounded-full object-cover ring-2 shrink-0 ${
+                  isLocation ? 'ring-[#B5A58C]' : 'ring-[#D88C72]'
+                }`}
               />
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="text-xs font-bold">
                     {selectedSpot.author.firstName} {selectedSpot.author.lastName}
                   </span>
-                  <span className="px-2 py-0.5 rounded-md bg-[#A44A3F] text-[#F4D6C6] text-[10px] font-black">
+                  <span
+                    className={`px-2 py-0.5 rounded-md text-[10px] font-black ${
+                      isLocation ? 'bg-[#087F5B] text-white' : 'bg-[#A44A3F] text-[#F4D6C6]'
+                    }`}
+                  >
                     🏅 {authorBadgeName}
                   </span>
                 </div>
@@ -165,14 +241,31 @@ export const SpotDetailModal: React.FC = () => {
                     {displayTitle}
                   </span>
                   {selectedSpot.verifiedSpot && (
-                    <CheckCircle2 className="w-4 h-4 text-[#D88C72] shrink-0" />
+                    <CheckCircle2 className={`w-4 h-4 shrink-0 ${isLocation ? 'text-[#087F5B]' : 'text-[#D88C72]'}`} />
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Action Buttons: Viber, Copy Link, Close */}
+            {/* Action Buttons: Favorite, Viber, Copy Link, Close */}
             <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => toggleFavoriteSpot(selectedSpot.id)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all hover:scale-105 cursor-pointer border ${
+                  isFavorite
+                    ? 'bg-[#FF6B54] text-white border-white/60 shadow-md'
+                    : isBeach
+                    ? 'bg-white/20 hover:bg-white/30 text-white border-white/40'
+                    : isLocation
+                    ? 'bg-[#6B715A] hover:bg-[#087F5B] text-[#DCBDA7] hover:text-white border-[#B5A58C]/60'
+                    : 'bg-[#A44A3F] hover:bg-[#D88C72] text-[#F4D6C6] hover:text-[#6B2F2F] border-[#D88C72]/50'
+                }`}
+                title={isFavorite ? 'Αφαίρεση από τα Αγαπημένα' : 'Προσθήκη στα Αγαπημένα (Λήψη ειδοποιήσεων ενημέρωσης)'}
+              >
+                <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
+                <span className="hidden sm:inline">{isFavorite ? 'Αγαπημένο' : 'Αγαπημένα'}</span>
+              </button>
+
               <button
                 onClick={handleViberShare}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#7360F2] hover:bg-[#5f4de0] text-white text-xs font-bold shadow-xs transition-all hover:scale-105 cursor-pointer"
@@ -184,7 +277,13 @@ export const SpotDetailModal: React.FC = () => {
 
               <button
                 onClick={handleCopyLink}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#A44A3F] hover:bg-[#D88C72] text-[#F4D6C6] hover:text-[#6B2F2F] text-xs font-bold transition-colors cursor-pointer border border-[#D88C72]/50"
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer border ${
+                  isBeach
+                    ? 'bg-white/20 hover:bg-white/30 text-white border-white/40'
+                    : isLocation
+                    ? 'bg-[#6B715A] hover:bg-[#087F5B] text-[#DCBDA7] hover:text-white border-[#B5A58C]/60'
+                    : 'bg-[#A44A3F] hover:bg-[#D88C72] text-[#F4D6C6] hover:text-[#6B2F2F] border-[#D88C72]/50'
+                }`}
                 title="Αντιγραφή συνδέσμου καρτέλας"
               >
                 {isCopied ? <Check className="w-4 h-4" /> : <Link2 className="w-4 h-4" />}
@@ -193,7 +292,13 @@ export const SpotDetailModal: React.FC = () => {
 
               <button
                 onClick={() => setSelectedSpot(null)}
-                className="p-2.5 rounded-xl bg-[#A44A3F] hover:bg-[#D88C72] text-[#F4D6C6] hover:text-[#6B2F2F] transition-colors cursor-pointer"
+                className={`p-2.5 rounded-xl transition-colors cursor-pointer ${
+                  isBeach
+                    ? 'bg-[#FF6B54] hover:bg-[#e85842] text-white'
+                    : isLocation
+                    ? 'bg-[#6B715A] hover:bg-[#B5A58C] text-[#DCBDA7] hover:text-[#5B3E36]'
+                    : 'bg-[#A44A3F] hover:bg-[#D88C72] text-[#F4D6C6] hover:text-[#6B2F2F]'
+                }`}
                 aria-label="Close"
               >
                 <X className="w-5 h-5" />
@@ -369,44 +474,141 @@ export const SpotDetailModal: React.FC = () => {
               </div>
             )}
 
-            {/* Insider Tips */}
-            {selectedSpot.insiderTips && (
-              <div className="p-4 rounded-2xl bg-[#FFF7F2] dark:bg-[#A44A3F]/30 border border-[#D88C72] flex items-start gap-3">
-                <Lightbulb className="w-5 h-5 text-[#A44A3F] shrink-0 mt-0.5" />
-                <div>
-                  <span className="text-xs font-extrabold uppercase tracking-wider text-[#6B2F2F] dark:text-[#F4D6C6]">
-                    {t.insiderTip}
-                  </span>
-                  <p className="text-sm font-medium text-[#6B2F2F] dark:text-[#F4D6C6] mt-0.5 leading-relaxed">
-                    {selectedSpot.insiderTips}
-                  </p>
+            {/* Insider Tips & Quick Update Trigger */}
+            <div
+              className={`p-4 rounded-2xl border flex flex-col gap-3 ${
+                isBeach
+                  ? 'bg-teal-50/70 dark:bg-slate-800 border-[#14B8A6]/40'
+                  : isLocation
+                  ? 'bg-[#B5A58C]/45 dark:bg-[#6B715A]/40 border-[#6B715A]'
+                  : 'bg-[#FFF7F2] dark:bg-[#A44A3F]/30 border-[#D88C72]'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <Lightbulb
+                    className={`w-5 h-5 shrink-0 mt-0.5 ${
+                      isBeach ? 'text-[#FF6B54]' : isLocation ? 'text-[#087F5B]' : 'text-[#A44A3F]'
+                    }`}
+                  />
+                  <div>
+                    <span
+                      className={`text-xs font-extrabold uppercase tracking-wider ${
+                        isBeach
+                          ? 'text-[#14B8A6]'
+                          : isLocation
+                          ? 'text-[#5B3E36] dark:text-[#DCBDA7]'
+                          : 'text-[#6B2F2F] dark:text-[#F4D6C6]'
+                      }`}
+                    >
+                      {t.insiderTip}
+                    </span>
+                    <p
+                      className={`text-sm font-medium mt-0.5 leading-relaxed ${
+                        isBeach
+                          ? 'text-stone-700 dark:text-stone-200'
+                          : isLocation
+                          ? 'text-[#5B3E36] dark:text-[#DCBDA7]'
+                          : 'text-[#6B2F2F] dark:text-[#F4D6C6]'
+                      }`}
+                    >
+                      {selectedSpot.insiderTips || 'Προσθέστε μια χρήσιμη συμβουλή ή ενημέρωση για τα μέλη!'}
+                    </p>
+                  </div>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditedInsiderTip(selectedSpot.insiderTips || '');
+                    setIsEditingSpotInfo((prev) => !prev);
+                  }}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-bold shrink-0 cursor-pointer transition-colors ${
+                    isBeach
+                      ? 'bg-[#14B8A6] hover:bg-[#0d9488] text-white'
+                      : isLocation
+                      ? 'bg-[#087F5B] hover:bg-[#6B715A] text-white'
+                      : 'bg-[#6B2F2F] hover:bg-[#A44A3F] text-[#F4D6C6]'
+                  }`}
+                >
+                  <Edit3 className="w-3 h-3" />
+                  <span>Ενημέρωση Spot</span>
+                </button>
               </div>
-            )}
+
+              {isEditingSpotInfo && (
+                <form onSubmit={handleSaveInsiderUpdate} className="pt-2 border-t border-black/10 flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="text"
+                    value={editedInsiderTip}
+                    onChange={(e) => setEditedInsiderTip(e.target.value)}
+                    placeholder="Ενημερώστε συμβουλές, ωράριο ή νέα πιάτα (θα ειδοποιηθούν όσοι το έχουν στα Αγαπημένα)..."
+                    className="flex-1 px-3 py-2 rounded-xl bg-white dark:bg-stone-900 border border-stone-300 text-stone-900 dark:text-stone-100 text-xs font-medium"
+                  />
+                  <button
+                    type="submit"
+                    disabled={isSavingSpotUpdate}
+                    className="px-4 py-2 rounded-xl bg-[#087F5B] hover:bg-[#066045] text-white text-xs font-bold cursor-pointer shrink-0"
+                  >
+                    {isSavingSpotUpdate ? 'Αποθήκευση...' : 'Αποθήκευση & Ειδοποίηση'}
+                  </button>
+                </form>
+              )}
+            </div>
 
             {/* Location & Embedded Map Preview */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <h4 className="font-heading text-lg font-bold text-[#6B2F2F] dark:text-[#F4D6C6] flex items-center gap-2">
-                  <MapPin className="w-5 h-5 text-[#A44A3F]" />
+                <h4
+                  className={`font-heading text-lg font-bold flex items-center gap-2 ${
+                    isBeach
+                      ? 'text-stone-900 dark:text-stone-100'
+                      : isLocation
+                      ? 'text-[#5B3E36] dark:text-[#DCBDA7]'
+                      : 'text-[#6B2F2F] dark:text-[#F4D6C6]'
+                  }`}
+                >
+                  <MapPin
+                    className={`w-5 h-5 ${
+                      isBeach ? 'text-[#14B8A6]' : isLocation ? 'text-[#087F5B]' : 'text-[#A44A3F]'
+                    }`}
+                  />
                   <span>{t.interactiveMap}</span>
                 </h4>
                 <a
                   href={selectedSpot.googleMapsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#6B2F2F] hover:bg-[#A44A3F] text-[#F4D6C6] text-xs font-bold transition-colors"
+                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-colors ${
+                    isBeach
+                      ? 'bg-[#14B8A6] hover:bg-[#0d9488] text-white'
+                      : isLocation
+                      ? 'bg-[#087F5B] hover:bg-[#6B715A] text-white'
+                      : 'bg-[#6B2F2F] hover:bg-[#A44A3F] text-[#F4D6C6]'
+                  }`}
                 >
                   <span>{t.openGoogleMaps}</span>
                   <ExternalLink className="w-3.5 h-3.5" />
                 </a>
               </div>
 
-              <p className="text-sm font-bold text-[#6B2F2F] dark:text-[#F4D6C6]">
+              <p
+                className={`text-sm font-bold ${
+                  isBeach
+                    ? 'text-stone-700 dark:text-stone-300'
+                    : isLocation
+                    ? 'text-[#5B3E36] dark:text-[#DCBDA7]'
+                    : 'text-[#6B2F2F] dark:text-[#F4D6C6]'
+                }`}
+              >
                 {selectedSpot.address}
               </p>
 
-              <div className="w-full h-56 rounded-2xl overflow-hidden border-2 border-[#A44A3F] shadow-inner bg-stone-100">
+              <div
+                className={`w-full h-56 rounded-2xl overflow-hidden border-2 shadow-inner bg-stone-100 ${
+                  isBeach ? 'border-[#14B8A6]' : isLocation ? 'border-[#6B715A]' : 'border-[#A44A3F]'
+                }`}
+              >
                 <iframe
                   title="Location Map"
                   width="100%"
@@ -419,6 +621,146 @@ export const SpotDetailModal: React.FC = () => {
                   className="w-full h-full"
                 />
               </div>
+            </div>
+
+            {/* YOUTUBE VIDEOS SECTION (Right after Interactive Map & Location for all Food Spots, Beaches, and Locations) */}
+            <div
+              className={`p-5 rounded-3xl border-2 space-y-4 ${
+                isBeach
+                  ? 'bg-teal-50/60 dark:bg-slate-800/80 border-[#14B8A6]'
+                  : isLocation
+                  ? 'bg-[#B5A58C]/45 dark:bg-[#6B715A]/40 border-[#6B715A]'
+                  : 'bg-[#FFF7F2] dark:bg-[#A44A3F]/30 border-[#A44A3F]'
+              }`}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-[#FF0000] text-white flex items-center justify-center shadow-sm shrink-0">
+                    <Youtube className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4
+                      className={`font-heading text-lg font-bold leading-tight ${
+                        isBeach
+                          ? 'text-stone-900 dark:text-stone-100'
+                          : isLocation
+                          ? 'text-[#5B3E36] dark:text-[#DCBDA7]'
+                          : 'text-[#6B2F2F] dark:text-[#F4D6C6]'
+                      }`}
+                    >
+                      YouTube Videos από το Μέρος
+                    </h4>
+                    <p
+                      className={`text-xs font-medium ${
+                        isBeach
+                          ? 'text-stone-600 dark:text-stone-300'
+                          : isLocation
+                          ? 'text-[#5B3E36]/85 dark:text-[#B5A58C]'
+                          : 'text-[#A44A3F] dark:text-[#D88C72]'
+                      }`}
+                    >
+                      Βίντεο παρουσίασης, δοκιμής ή ξενάγησης από το «{displayTitle}»
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <a
+                    href={`https://www.youtube.com/results?search_query=${encodeURIComponent(displayTitle + ' ' + selectedSpot.address.split(',')[0])}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#FF0000] hover:bg-[#cc0000] text-white text-xs font-bold shadow-xs transition-colors"
+                  >
+                    <Youtube className="w-3.5 h-3.5" />
+                    <span>Αναζήτηση στο YouTube</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingYoutube((prev) => !prev)}
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
+                      isBeach
+                        ? 'bg-[#14B8A6] hover:bg-[#0d9488] text-white'
+                        : isLocation
+                        ? 'bg-[#087F5B] hover:bg-[#6B715A] text-white'
+                        : 'bg-[#6B2F2F] hover:bg-[#A44A3F] text-[#F4D6C6]'
+                    }`}
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Προσθήκη Video</span>
+                  </button>
+                </div>
+              </div>
+
+              {isAddingYoutube && (
+                <form onSubmit={handleAddYoutubeVideo} className="flex flex-col sm:flex-row gap-2 pt-1">
+                  <input
+                    type="url"
+                    value={newYoutubeUrl}
+                    onChange={(e) => setNewYoutubeUrl(e.target.value)}
+                    placeholder="Επικολλήστε σύνδεσμο YouTube (π.χ. https://www.youtube.com/watch?v=...)"
+                    className="flex-1 px-3.5 py-2.5 rounded-xl bg-white dark:bg-stone-900 border border-stone-300 text-stone-900 dark:text-stone-100 text-xs font-medium"
+                    required
+                  />
+                  <button
+                    type="submit"
+                    disabled={isSavingSpotUpdate}
+                    className="px-4 py-2.5 rounded-xl bg-[#FF0000] hover:bg-[#cc0000] text-white text-xs font-bold cursor-pointer shrink-0"
+                  >
+                    {isSavingSpotUpdate ? 'Προσθήκη...' : 'Ενσωμάτωση Video'}
+                  </button>
+                </form>
+              )}
+
+              {youtubeVideos.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {youtubeVideos.map((videoUrl, idx) => {
+                    const embedUrl = extractYouTubeEmbedUrl(videoUrl);
+                    return (
+                      <div
+                        key={idx}
+                        className={`rounded-2xl overflow-hidden border shadow-sm bg-black/95 flex flex-col ${
+                          isBeach ? 'border-[#14B8A6]' : isLocation ? 'border-[#6B715A]' : 'border-[#A44A3F]'
+                        }`}
+                      >
+                        {embedUrl ? (
+                          <div className="relative aspect-video w-full">
+                            <iframe
+                              src={embedUrl}
+                              title={`${displayTitle} YouTube Video ${idx + 1}`}
+                              className="w-full h-full"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                            />
+                          </div>
+                        ) : null}
+                        <div className="px-3.5 py-2.5 bg-stone-900 text-stone-100 flex items-center justify-between gap-2 text-xs">
+                          <span className="font-bold truncate flex items-center gap-1.5">
+                            <Youtube className="w-4 h-4 text-[#FF0000] shrink-0" />
+                            <span>YouTube Video #{idx + 1} • {displayTitle}</span>
+                          </span>
+                          <a
+                            href={videoUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-amber-300 hover:underline font-bold flex items-center gap-1 shrink-0"
+                          >
+                            <span>Άνοιγμα</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="p-4 rounded-2xl bg-white/60 dark:bg-black/20 border border-dashed border-stone-400/60 text-center">
+                  <p className="text-xs font-semibold text-stone-700 dark:text-stone-300">
+                    Δεν έχει προστεθεί ακόμα ενσωματωμένο YouTube βίντεο για αυτό το μέρος. Πατήστε <strong>«Προσθήκη Video»</strong> αν έχετε κάποιο σχετικό link ή <strong>«Αναζήτηση στο YouTube»</strong>!
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* COMMUNITY REVIEWS & AI MODERATED DISCUSSION */}
