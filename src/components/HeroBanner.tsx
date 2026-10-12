@@ -85,6 +85,31 @@ export const HeroBanner: React.FC = () => {
   const [likedPostIds, setLikedPostIds] = useState<Record<string, boolean>>({});
   const composerInputRef = React.useRef<HTMLInputElement>(null);
 
+  // Slowly auto-sliding spots carousel
+  const spotsCarouselRef = React.useRef<HTMLDivElement>(null);
+  const [isSpotsSlidePaused, setIsSpotsSlidePaused] = useState(false);
+
+  React.useEffect(() => {
+    const container = spotsCarouselRef.current;
+    if (!container) return;
+
+    let animFrameId: number;
+    const scrollStep = 0.65; // gentle, smooth, slow motion
+
+    const autoScroll = () => {
+      if (!isSpotsSlidePaused && container) {
+        container.scrollLeft += scrollStep;
+        if (container.scrollLeft >= container.scrollWidth - container.clientWidth - 2) {
+          container.scrollLeft = 0;
+        }
+      }
+      animFrameId = requestAnimationFrame(autoScroll);
+    };
+
+    animFrameId = requestAnimationFrame(autoScroll);
+    return () => cancelAnimationFrame(animFrameId);
+  }, [isSpotsSlidePaused, spots]);
+
   const activeFiltersCount = 
     (selectedCategory !== 'ALL' ? 1 : 0) + 
     (selectedMacroGroup !== 'ALL' ? 1 : 0) +
@@ -137,9 +162,83 @@ export const HeroBanner: React.FC = () => {
   };
 
   return (
-    <div className="relative border-b-2 border-[#6B8E7B] bg-gradient-to-b from-[#B7C9B1] via-[#F1E9D2] to-[#F1E9D2] dark:from-[#243B35] dark:via-[#1b2d28] dark:to-[#243B35] pt-8 pb-10 transition-colors">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+    <div className="relative border-b-2 border-[#6B8E7B] bg-gradient-to-b from-[#B7C9B1] via-[#F1E9D2] to-[#F1E9D2] dark:from-[#243B35] dark:via-[#1b2d28] dark:to-[#243B35] pt-6 pb-10 transition-colors">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-5">
         
+        {/* Moving Profile Pictures with First Names Slowly Animated showing Leaderboard Ranking */}
+        <div 
+          className="relative overflow-hidden rounded-2xl bg-[#1b2d28]/95 border-2 border-[#6B8E7B] py-2 px-3 shadow-md"
+          onMouseEnter={() => setIsSpotsSlidePaused(true)}
+          onMouseLeave={() => setIsSpotsSlidePaused(false)}
+        >
+          <div className="flex items-center justify-between mb-1 px-1">
+            <div className="flex items-center gap-2">
+              <span className="flex h-2 w-2 rounded-full bg-[#CDFF9B] animate-ping" />
+              <span className="text-[11px] font-black uppercase tracking-wider text-[#CDFF9B]">
+                {language === 'el' ? '🏆 Ζωντανή Κατάταξη Leaderboard Μελών' : '🏆 Live Member Leaderboard Ranking'}
+              </span>
+            </div>
+            <span className="text-[10px] font-semibold text-[#B7C9B1]">
+              {language === 'el' ? 'Αγγίξτε μέλος για προβολή προφίλ' : 'Tap member for profile'}
+            </span>
+          </div>
+
+          <div className="overflow-hidden relative py-1">
+            <div className="animate-marquee-slow flex items-center gap-3">
+              {[...rankedMembers, ...rankedMembers].map((member, index) => {
+                const rank = (index % rankedMembers.length) + 1;
+                const rankSign =
+                  rank === 1
+                    ? { icon: '👑', label: '#1', color: 'bg-amber-500 text-stone-950 border-amber-300 ring-2 ring-amber-400' }
+                    : rank === 2
+                    ? { icon: '🥇', label: '#2', color: 'bg-stone-300 text-stone-950 border-stone-100 ring-1 ring-stone-300' }
+                    : rank === 3
+                    ? { icon: '🥈', label: '#3', color: 'bg-amber-700 text-white border-amber-500' }
+                    : rank === 4
+                    ? { icon: '🥉', label: '#4', color: 'bg-blue-600 text-white border-blue-400' }
+                    : { icon: '🎖️', label: `#${rank}`, color: 'bg-[#6B8E7B] text-[#F1E9D2] border-[#CDFF9B]/40' };
+
+                return (
+                  <div
+                    key={`${member.id}-${index}`}
+                    onClick={() => setSelectedMemberProfile(member)}
+                    title={`${member.firstName} ${member.lastName} • ${member.gamification.titleEl} • ${member.xp} XP`}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#243B35] hover:bg-[#6B8E7B]/50 border border-[#6B8E7B]/70 shadow-xs cursor-pointer transition-all hover:scale-105 shrink-0 group"
+                  >
+                    <div className="relative shrink-0">
+                      <img
+                        src={member.avatarUrl}
+                        alt={member.firstName}
+                        className="w-9 h-9 rounded-full object-cover ring-2 ring-[#CDFF9B]"
+                      />
+                      <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-blue-600 text-white text-[9px] font-black flex items-center justify-center border border-white">
+                        {member.gamification.level}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col min-w-0 pr-1">
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs font-black text-[#F1E9D2] group-hover:text-[#CDFF9B] transition-colors truncate">
+                          {member.firstName}
+                        </span>
+                        <span className="text-sm shrink-0">{rankSign.icon}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className={`px-1.5 py-0.2 rounded text-[9px] font-black leading-tight border ${rankSign.color}`}>
+                          {rankSign.label}
+                        </span>
+                        <span className="text-[10px] font-semibold text-[#B7C9B1] truncate max-w-[85px]">
+                          {member.gamification.titleEl.split(' ')[0]}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
         {/* Badges */}
         <div className="flex flex-wrap items-center gap-2">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#243B35] border border-[#6B8E7B] text-[#F1E9D2] text-xs font-bold uppercase tracking-wider shadow-xs">
@@ -167,12 +266,12 @@ export const HeroBanner: React.FC = () => {
           </p>
         </div>
 
-        {/* 1. Search by Name, Food, Region + Search Categories (ΠΡΩΙΝΑ/BRUNCH, ΦΑΓΗΤΟ/FOOD, ΓΛΥΚΑ/DESERTS, ΦΟΥΡΝΟΙ/PIES, ΚΑΦΕΣ/COFFEE) */}
+        {/* 1. Search: "Αναζήτηση εδώ: όνομα, φαγητό" + Collapsed Macro Categories Dropdown */}
         <div className="space-y-3">
-          <div className="relative max-w-4xl bg-[#243B35] rounded-2xl shadow-lg border-2 border-[#6B8E7B] p-2 sm:p-3">
+          <div className="relative max-w-4xl bg-[#243B35] rounded-2xl shadow-lg border-2 border-[#6B8E7B] p-2 sm:p-3 space-y-2">
+            
+            {/* Search Input Row (Αναζήτηση εδώ: όνομα, φαγητό) */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-              
-              {/* Search Input (Όνομα & Φαγητό) */}
               <div className="relative flex-1 flex items-center">
                 <Search className="absolute left-3.5 w-5 h-5 text-[#B7C9B1]" />
                 <input
@@ -181,15 +280,15 @@ export const HeroBanner: React.FC = () => {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={
                     language === 'el'
-                      ? 'Αναζήτηση με όνομα, φαγητό ή περιοχή...'
-                      : 'Search by name, food or region...'
+                      ? 'Αναζήτηση εδώ: όνομα, φαγητό...'
+                      : 'Search here: name, food...'
                   }
-                  className="w-full pl-11 pr-4 py-3 bg-transparent text-[#F1E9D2] placeholder-[#B7C9B1]/80 text-base font-medium focus:outline-none"
+                  className="w-full pl-11 pr-4 py-3 bg-transparent text-[#F1E9D2] placeholder-[#B7C9B1]/90 text-sm sm:text-base font-semibold focus:outline-none"
                 />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery('')}
-                    className="p-1.5 text-[#B7C9B1] hover:text-[#F1E9D2]"
+                    className="p-1.5 text-[#B7C9B1] hover:text-[#F1E9D2] cursor-pointer"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -214,30 +313,45 @@ export const HeroBanner: React.FC = () => {
                   </select>
                 </div>
               </div>
-
             </div>
 
-            {/* Search Macro-Categories Bar inside the Search Box */}
-            <div className="mt-2.5 pt-2.5 border-t border-[#6B8E7B]/50 flex flex-wrap items-center gap-1.5">
-              {MACRO_GROUPS.map((grp) => {
-                const active = selectedMacroGroup === grp.id;
-                return (
-                  <button
-                    key={grp.id}
-                    type="button"
-                    onClick={() => setSelectedMacroGroup(active ? 'ALL' : grp.id)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer border ${
-                      active
-                        ? 'bg-[#F4D6C6] text-[#6B2F2F] border-[#D88C72] shadow-sm scale-[1.02]'
-                        : 'bg-[#1b2d28] text-[#F1E9D2] border-[#6B8E7B] hover:bg-[#6B8E7B]'
-                    }`}
+            {/* Collapsed Drop-down Menu for Macro Groups: [🥐 ΠΡΩΙΝΑ/BRUNCH, 🍽️ ΦΑΓΗΤΟ/FOOD, 🍨 ΓΛΥΚΑ/DESERTS, 🥖 ΦΟΥΡΝΟΙ/PIES, ☕ ΚΑΦΕΣ/COFFEE] */}
+            <div className="pt-2 border-t border-[#6B8E7B]/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-bold text-[#F4D6C6] shrink-0">
+                  {language === 'el' ? 'Επιλογή Μενού / Γεύματος:' : 'Select Menu / Meal:'}
+                </span>
+                <div className="relative min-w-[240px] sm:min-w-[280px]">
+                  <select
+                    value={selectedMacroGroup}
+                    onChange={(e) => setSelectedMacroGroup(e.target.value as SearchMacroGroup)}
+                    aria-label={language === 'el' ? 'Επιλογή Μενού και Γεύματος' : 'Select Menu and Meal'}
+                    className="w-full pl-3.5 pr-8 py-2 rounded-xl text-xs sm:text-sm font-bold bg-[#1b2d28] text-[#F1E9D2] border border-[#6B8E7B] focus:outline-none focus:ring-2 focus:ring-[#F4D6C6] cursor-pointer appearance-none shadow-xs"
                   >
-                    <span>{grp.icon}</span>
-                    <span>{language === 'el' ? grp.labelEl : grp.labelEn}</span>
-                  </button>
-                );
-              })}
+                    <option value="ALL">
+                      ✨ {language === 'el' ? 'Όλα τα Μενού & Γεύματα (Πρωινά, Φαγητό, Γλυκά, Φούρνοι, Καφές)' : 'All Menus & Meals'}
+                    </option>
+                    {MACRO_GROUPS.map((grp) => (
+                      <option key={grp.id} value={grp.id} className="bg-[#243B35] text-[#F1E9D2]">
+                        {grp.icon} {language === 'el' ? grp.labelEl : grp.labelEn}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-[#F4D6C6] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </div>
+
+              {selectedMacroGroup !== 'ALL' && (
+                <button
+                  onClick={() => setSelectedMacroGroup('ALL')}
+                  className="text-xs font-bold text-[#F4D6C6] hover:underline flex items-center gap-1 cursor-pointer self-start sm:self-auto"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  <span>{language === 'el' ? 'Επαναφορά Μενού' : 'Reset Menu'}</span>
+                </button>
+              )}
             </div>
+
           </div>
 
           {/* 2. Category Selection: Όλες οι Επιλογές, Παραλίες, and Drop-down Menu for the 12 Food & Experience Categories */}
@@ -345,27 +459,35 @@ export const HeroBanner: React.FC = () => {
           </div>
         </div>
 
-        {/* 3. Spots Carousel */}
-        <div className="flex items-center gap-3 overflow-x-auto pb-3 pt-1 scrollbar-thin">
-          {spots.map((spot) => {
-            const displayTitle = language === 'el' && spot.titleEl ? spot.titleEl : spot.title;
-            const catConfig = CATEGORY_TRANSLATIONS[spot.category] || { icon: '📍', el: spot.category };
-            const isBeach = spot.category === 'Παραλίες';
-            const isLocation = spot.category === 'Τοποθεσίες';
-            
-            return (
-              <div
-                key={spot.id}
-                onClick={() => setSelectedSpot(spot)}
-                title={`Άνοιγμα καρτέλας: ${displayTitle}`}
-                className={`relative w-36 sm:w-44 aspect-square shrink-0 rounded-[10px] overflow-hidden cursor-pointer shadow-md hover:shadow-xl hover:scale-[1.03] transition-all duration-200 border-2 group ${
-                  isBeach
-                    ? 'border-[#FF6B54] bg-[#14B8A6]'
-                    : isLocation
-                    ? 'border-[#6B715A] bg-[#5B3E36]'
-                    : 'border-[#6B2F2F] bg-[#6B2F2F]'
-                }`}
-              >
+        {/* 3. Spots Carousel - Slowly Animated Auto-Sliding Loop */}
+        <div className="relative group">
+          <div
+            ref={spotsCarouselRef}
+            onMouseEnter={() => setIsSpotsSlidePaused(true)}
+            onMouseLeave={() => setIsSpotsSlidePaused(false)}
+            onTouchStart={() => setIsSpotsSlidePaused(true)}
+            onTouchEnd={() => setIsSpotsSlidePaused(false)}
+            className="flex items-center gap-3 overflow-x-auto pb-3 pt-1 scrollbar-thin scroll-smooth"
+          >
+            {[...spots, ...spots].map((spot, spotIdx) => {
+              const displayTitle = language === 'el' && spot.titleEl ? spot.titleEl : spot.title;
+              const catConfig = CATEGORY_TRANSLATIONS[spot.category] || { icon: '📍', el: spot.category };
+              const isBeach = spot.category === 'Παραλίες';
+              const isLocation = spot.category === 'Τοποθεσίες';
+              
+              return (
+                <div
+                  key={`${spot.id}-${spotIdx}`}
+                  onClick={() => setSelectedSpot(spot)}
+                  title={`Άνοιγμα καρτέλας: ${displayTitle}`}
+                  className={`relative w-36 sm:w-44 aspect-square shrink-0 rounded-[12px] overflow-hidden cursor-pointer shadow-md hover:shadow-xl hover:scale-[1.03] transition-all duration-200 border-2 group/card ${
+                    isBeach
+                      ? 'border-[#FF6B54] bg-[#14B8A6]'
+                      : isLocation
+                      ? 'border-[#6B715A] bg-[#5B3E36]'
+                      : 'border-[#6B2F2F] bg-[#6B2F2F]'
+                  }`}
+                >
                 <img
                   src={spot.coverImageUrl}
                   alt={displayTitle}
@@ -409,6 +531,7 @@ export const HeroBanner: React.FC = () => {
               </div>
             );
           })}
+          </div>
         </div>
 
         {/* 4. Leaderboard Ranking & Ζωντανή Συζήτηση Μελών — Skool-Style Community Feed & Leaderboard UX */}

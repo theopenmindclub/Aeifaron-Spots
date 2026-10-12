@@ -23,6 +23,7 @@ import {
   Link2,
   Heart,
   Youtube,
+  Award,
   Plus,
   Edit3
 } from 'lucide-react';
@@ -47,6 +48,8 @@ export const SpotDetailModal: React.FC = () => {
     language, 
     t, 
     currentUser, 
+    allUsers,
+    spots,
     addReview, 
     addReply, 
     updateHitSpot,
@@ -91,6 +94,18 @@ export const SpotDetailModal: React.FC = () => {
   const categoryConfig = CATEGORY_TRANSLATIONS[selectedSpot.category] || { el: selectedSpot.category, en: selectedSpot.category, icon: '🍽️' };
   const regionConfig = REGION_TRANSLATIONS[selectedSpot.region] || { el: selectedSpot.region, en: selectedSpot.region };
   const authorBadgeName = getGamificationBadge(selectedSpot.author?.spotsSubmittedCount || 1);
+  const authorRank = allUsers && spots
+    ? [...allUsers]
+        .map((u) => {
+          const userSpots = spots.filter((s) => s.authorId === u.id);
+          const spotsCount = Math.max(u.spotsSubmittedCount || 0, userSpots.length);
+          const starsReceived = userSpots.reduce((acc, s) => acc + s.rating, 0);
+          const xp = spotsCount * 100 + Math.round(starsReceived * 10) + (u.reviewsCount || 0) * 20;
+          return { id: u.id, xp };
+        })
+        .sort((a, b) => b.xp - a.xp)
+        .findIndex((u) => u.id === selectedSpot.authorId) + 1
+    : 1;
 
   const displayTitle = language === 'el' && selectedSpot.titleEl ? selectedSpot.titleEl : selectedSpot.title;
   const displaySecretSauce = language === 'el' && selectedSpot.whyIsItSpecialEl ? selectedSpot.whyIsItSpecialEl : selectedSpot.whyIsItSpecial;
@@ -205,161 +220,134 @@ export const SpotDetailModal: React.FC = () => {
           }`}
         >
           
-          {/* Sticky Header */}
+          {/* Modal Header - Designed with Priority for Mobile Smartphone Experience Design */}
           <div
-            className={`sticky top-0 z-20 flex items-center justify-between px-6 py-4 backdrop-blur-md border-b ${
+            className={`sticky top-0 z-20 px-4 sm:px-6 py-3.5 backdrop-blur-md border-b flex flex-col gap-2.5 ${
               isBeach
                 ? 'bg-[#14B8A6] text-white border-[#FF6B54]'
                 : isLocation
                 ? 'bg-[#5B3E36] text-[#DCBDA7] border-[#6B715A]'
-                : 'bg-[#6B2F2F] text-[#F4D6C6] border-[#A44A3F]'
+                : 'bg-[#5B2E28] text-[#F4D6C6] border-[#A44A3F]'
             }`}
           >
-            <div className="flex items-center gap-3 min-w-0">
-              <img
-                src={selectedSpot.author.avatarUrl}
-                alt={selectedSpot.author.firstName}
-                className={`w-10 h-10 rounded-full object-cover ring-2 shrink-0 ${
-                  isLocation ? 'ring-[#B5A58C]' : 'ring-[#D88C72]'
-                }`}
-              />
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-xs font-bold">
+            {/* Top row: Left (Profile Pic, Name above/beside & Gamification Level) + Right (❤️, 👑, ✈️, 🔗, ✕) */}
+            <div className="flex items-center justify-between gap-2.5">
+              {/* Left Side: Avatar, Name, and Gamification Badge */}
+              <div className="flex items-center gap-3 min-w-0">
+                <img
+                  src={selectedSpot.author.avatarUrl}
+                  alt={selectedSpot.author.firstName}
+                  className="w-12 h-12 rounded-full object-cover ring-2 ring-[#D88C72] shrink-0 shadow-sm"
+                />
+                <div className="min-w-0">
+                  <div className="font-heading text-sm sm:text-base font-bold text-[#F1E9D2] leading-tight truncate">
                     {selectedSpot.author.firstName} {selectedSpot.author.lastName}
-                  </span>
-                  <span
-                    className={`px-2 py-0.5 rounded-md text-[10px] font-black ${
-                      isLocation ? 'bg-[#087F5B] text-white' : 'bg-[#A44A3F] text-[#F4D6C6]'
-                    }`}
-                  >
-                    🏅 {authorBadgeName}
-                  </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-[#A44A3F] text-[#F4D6C6] border border-[#D88C72]/40 flex items-center gap-1 shrink-0">
+                      <span>🏅</span>
+                      <span>{authorBadgeName}</span>
+                    </span>
+                    <span className="w-4 h-4 rounded-full bg-[#087F5B] text-white flex items-center justify-center text-[10px] font-black shadow-2xs shrink-0">
+                      ✓
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1.5 truncate">
-                  <span className="font-heading text-base sm:text-lg font-bold truncate">
-                    {displayTitle}
-                  </span>
-                  {selectedSpot.verifiedSpot && (
-                    <CheckCircle2 className={`w-4 h-4 shrink-0 ${isLocation ? 'text-[#087F5B]' : 'text-[#D88C72]'}`} />
-                  )}
+              </div>
+
+              {/* Action buttons row matching user design: Heart, Crown, Viber, Link, Close */}
+              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                {/* 1. Heart (Favorite) */}
+                <button
+                  onClick={() => toggleFavoriteSpot(selectedSpot.id)}
+                  title={isFavorite ? 'Αφαίρεση από τα Αγαπημένα' : 'Προσθήκη στα Αγαπημένα (Λήψη ειδοποιήσεων)'}
+                  className={`w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center transition-all hover:scale-105 cursor-pointer shadow-md ${
+                    isFavorite
+                      ? 'bg-[#FF6B54] text-white ring-2 ring-white/60'
+                      : 'bg-[#FF6B54] hover:bg-[#ff553b] text-white'
+                  }`}
+                >
+                  <Heart className={`w-5 h-5 ${isFavorite ? 'fill-current' : 'fill-white'}`} />
+                </button>
+
+                {/* 2. Royal Crown indicator sign */}
+                <div
+                  title={`Κατάταξη Leaderboard: #${authorRank > 0 ? authorRank : 1} (${authorBadgeName})`}
+                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-[#D88C72]/30 border border-[#D88C72] flex items-center justify-center text-lg shadow-xs select-none cursor-default"
+                >
+                  👑
                 </div>
+
+                {/* 3. Send to Viber */}
+                <button
+                  onClick={handleViberShare}
+                  title="Αποστολή στο Viber"
+                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-[#7360F2] hover:bg-[#5f4de0] text-white flex items-center justify-center shadow-md transition-all hover:scale-105 cursor-pointer"
+                >
+                  <Send className="w-5 h-5" />
+                </button>
+
+                {/* 4. Link button */}
+                <button
+                  onClick={handleCopyLink}
+                  title="Αντιγραφή συνδέσμου καρτέλας"
+                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-[#6B2F2F] hover:bg-[#853C35] text-[#F4D6C6] border border-[#D88C72]/50 flex items-center justify-center shadow-xs transition-colors cursor-pointer"
+                >
+                  {isCopied ? <Check className="w-5 h-5 text-[#CDFF9B]" /> : <Link2 className="w-5 h-5" />}
+                </button>
+
+                {/* 5. Close button */}
+                <button
+                  onClick={() => setSelectedSpot(null)}
+                  title="Κλείσιμο"
+                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-[#7A3530] hover:bg-[#9B423C] text-[#F4D6C6] flex items-center justify-center shadow-xs transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
             </div>
 
-            {/* Action Buttons: Favorite, Viber, Copy Link, Close */}
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                onClick={() => toggleFavoriteSpot(selectedSpot.id)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all hover:scale-105 cursor-pointer border ${
-                  isFavorite
-                    ? 'bg-[#FF6B54] text-white border-white/60 shadow-md'
-                    : isBeach
-                    ? 'bg-white/20 hover:bg-white/30 text-white border-white/40'
-                    : isLocation
-                    ? 'bg-[#6B715A] hover:bg-[#087F5B] text-[#DCBDA7] hover:text-white border-[#B5A58C]/60'
-                    : 'bg-[#A44A3F] hover:bg-[#D88C72] text-[#F4D6C6] hover:text-[#6B2F2F] border-[#D88C72]/50'
-                }`}
-                title={isFavorite ? 'Αφαίρεση από τα Αγαπημένα' : 'Προσθήκη στα Αγαπημένα (Λήψη ειδοποιήσεων ενημέρωσης)'}
-              >
-                <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
-                <span className="hidden sm:inline">{isFavorite ? 'Αγαπημένο' : 'Αγαπημένα'}</span>
-              </button>
-
-              <button
-                onClick={handleViberShare}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#7360F2] hover:bg-[#5f4de0] text-white text-xs font-bold shadow-xs transition-all hover:scale-105 cursor-pointer"
-                title="Κοινοποίηση στο Viber"
-              >
-                <Send className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Viber</span>
-              </button>
-
-              <button
-                onClick={handleCopyLink}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer border ${
-                  isBeach
-                    ? 'bg-white/20 hover:bg-white/30 text-white border-white/40'
-                    : isLocation
-                    ? 'bg-[#6B715A] hover:bg-[#087F5B] text-[#DCBDA7] hover:text-white border-[#B5A58C]/60'
-                    : 'bg-[#A44A3F] hover:bg-[#D88C72] text-[#F4D6C6] hover:text-[#6B2F2F] border-[#D88C72]/50'
-                }`}
-                title="Αντιγραφή συνδέσμου καρτέλας"
-              >
-                {isCopied ? <Check className="w-4 h-4" /> : <Link2 className="w-4 h-4" />}
-                <span className="hidden sm:inline">{isCopied ? 'Αντιγράφηκε!' : 'Link'}</span>
-              </button>
-
-              <button
-                onClick={() => setSelectedSpot(null)}
-                className={`p-2.5 rounded-xl transition-colors cursor-pointer ${
-                  isBeach
-                    ? 'bg-[#FF6B54] hover:bg-[#e85842] text-white'
-                    : isLocation
-                    ? 'bg-[#6B715A] hover:bg-[#B5A58C] text-[#DCBDA7] hover:text-[#5B3E36]'
-                    : 'bg-[#A44A3F] hover:bg-[#D88C72] text-[#F4D6C6] hover:text-[#6B2F2F]'
-                }`}
-                aria-label="Close"
-              >
-                <X className="w-5 h-5" />
-              </button>
+            {/* Title & Spot Category line */}
+            <div className="flex items-center justify-between gap-2 pt-1 border-t border-white/10">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="font-heading text-lg sm:text-xl font-bold text-[#F1E9D2] truncate">
+                  {displayTitle}
+                </span>
+                {selectedSpot.verifiedSpot && (
+                  <CheckCircle2 className="w-4 h-4 text-[#CDFF9B] shrink-0" />
+                )}
+              </div>
+              <span className="text-xs font-bold text-[#F4D6C6]/90 shrink-0">
+                {categoryConfig.icon} {categoryConfig.el}
+              </span>
             </div>
           </div>
 
           {/* Scrollable Content */}
-          <div className="overflow-y-auto px-6 py-6 space-y-7">
+          <div className="overflow-y-auto px-4 sm:px-6 py-6 space-y-7">
             
             {/* Main Photo Gallery */}
             <div className="space-y-3">
               <div 
                 onClick={() => setLightboxUrl(selectedSpot.coverImageUrl)}
-                className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden bg-[#D88C72]/30 cursor-zoom-in shadow-md group border-2 border-[#A44A3F]"
+                className="relative w-full rounded-2xl overflow-hidden bg-black/15 cursor-zoom-in shadow-md group border-2 border-[#A44A3F]"
               >
                 <img
                   src={selectedSpot.coverImageUrl}
                   alt={displayTitle}
-                  className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
+                  className="w-full max-h-[460px] object-cover group-hover:scale-[1.01] transition-transform duration-300"
                 />
 
-                {/* Overlay on top-left of the photo */}
-                <div className="absolute top-3.5 left-3.5 flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#6B2F2F]/90 backdrop-blur-md text-[#F4D6C6] text-xs font-bold border border-[#D88C72]/50 shadow-lg pointer-events-none">
-                  <img
-                    src={selectedSpot.author.avatarUrl}
-                    alt={selectedSpot.author.firstName}
-                    className="w-6 h-6 rounded-full object-cover ring-1 ring-[#D88C72]"
-                  />
-                  <span>
-                    Ανέβηκε από: {selectedSpot.author.firstName} {selectedSpot.author.lastName}
-                  </span>
-                </div>
-
-                {/* Overlay on top-right of the photo */}
-                <div className="absolute top-3.5 right-3.5 flex items-center gap-2">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleViberShare(); }}
-                    className="px-2.5 py-1.5 rounded-xl bg-[#7360F2] text-white text-xs font-bold shadow-md hover:scale-105 transition-transform cursor-pointer flex items-center gap-1"
-                  >
-                    <Send className="w-3 h-3" />
-                    <span>Viber</span>
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleCopyLink(); }}
-                    className="p-1.5 rounded-xl bg-[#6B2F2F]/90 text-[#F4D6C6] shadow-md hover:scale-105 transition-transform cursor-pointer"
-                    title="Αντιγραφή link"
-                  >
-                    <Link2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-
-                <div className="absolute bottom-3 right-3 px-3 py-1.5 rounded-xl bg-[#6B2F2F]/85 backdrop-blur-md text-[#F4D6C6] text-xs font-bold flex items-center gap-1.5 pointer-events-none">
-                  <ImageIcon className="w-3.5 h-3.5" />
-                  <span>{t.viewFullGallery}</span>
+                {/* Discreet "Προβολή Φωτογραφιών" pill */}
+                <div className="absolute bottom-3 right-3 px-3.5 py-1.5 rounded-xl bg-[#6B2F2F]/90 hover:bg-[#6B2F2F] backdrop-blur-md text-[#F4D6C6] text-xs font-extrabold flex items-center gap-1.5 shadow-md border border-[#D88C72]/60 transition-colors">
+                  <ImageIcon className="w-4 h-4 text-[#CDFF9B]" />
+                  <span>Προβολή Φωτογραφιών</span>
                 </div>
               </div>
 
               {/* Gallery Thumbnails */}
               {selectedSpot.galleryUrls && selectedSpot.galleryUrls.length > 1 && (
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5">
                   {selectedSpot.galleryUrls.map((url, i) => (
                     <div
                       key={i}
@@ -372,25 +360,25 @@ export const SpotDetailModal: React.FC = () => {
                 </div>
               )}
 
-              {/* Helper directly below the photos for missing photos / Street View */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-[#FFF7F2] dark:bg-[#A44A3F]/35 border border-[#A44A3F]">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-[#6B2F2F] text-[#F4D6C6] flex items-center justify-center shrink-0">
-                    <Camera className="w-5 h-5" />
+              {/* Street View Screenshot Helper Card directly below photos matching Image 2 */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-[#FFF7F2] dark:bg-[#A44A3F]/35 border-2 border-[#A44A3F] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+                <div className="flex items-start sm:items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-2xl bg-[#6B2F2F] text-[#F4D6C6] flex items-center justify-center shrink-0 shadow-xs">
+                    <Camera className="w-6 h-6" />
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-[#6B2F2F] dark:text-[#F4D6C6]">
+                    <h5 className="font-heading text-sm sm:text-base font-black text-[#6B2F2F] dark:text-[#F4D6C6] leading-snug">
                       Δεν έχετε δική σας φωτογραφία από το μαγαζί;
-                    </div>
-                    <div className="text-[11px] text-[#A44A3F] dark:text-[#F4D6C6]/80 font-medium">
-                      Μπορείτε να ανεβάσετε screenshot από το Google Maps Street View!
-                    </div>
+                    </h5>
+                    <p className="text-xs text-[#A44A3F] dark:text-[#F4D6C6]/90 font-semibold mt-0.5">
+                      Αν δεν έχεις δική σου φωτογραφία από τον χώρο, ανέβασε ένα screenshot από το Google Maps Street View!
+                    </p>
                   </div>
                 </div>
 
                 <button
                   onClick={() => setIsStreetViewOpen(true)}
-                  className="px-3.5 py-2 rounded-xl bg-[#6B2F2F] hover:bg-[#A44A3F] text-[#F4D6C6] font-bold text-xs shadow-xs transition-colors cursor-pointer shrink-0 self-start sm:self-center"
+                  className="px-4 py-2.5 rounded-xl bg-[#6B2F2F] hover:bg-[#A44A3F] text-[#F4D6C6] font-heading font-black text-xs sm:text-sm shadow-md transition-all hover:scale-105 cursor-pointer shrink-0 self-start sm:self-center"
                 >
                   Οδηγός Street View Screenshot
                 </button>
@@ -402,8 +390,9 @@ export const SpotDetailModal: React.FC = () => {
               
               {/* Rating */}
               <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-[#6B2F2F] text-[#F4D6C6] font-black text-xl shadow-md">
-                  ★ {selectedSpot.rating.toFixed(1)}
+                <div className="flex items-center justify-center gap-1.5 px-3 h-12 rounded-xl bg-[#6B2F2F] text-[#F4D6C6] border border-[#D88C72]/50 font-black text-xl shadow-md">
+                  <Award className="w-5 h-5 text-amber-300 shrink-0" />
+                  <span>★ {selectedSpot.rating.toFixed(1)}</span>
                 </div>
                 <div>
                   <div className="text-sm font-bold text-[#6B2F2F] dark:text-[#F4D6C6]">
@@ -803,6 +792,9 @@ export const SpotDetailModal: React.FC = () => {
 
                   {/* Star Picker */}
                   <div className="flex items-center gap-1.5">
+                    <div className="w-7 h-7 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0 mr-1 shadow-2xs">
+                      <Award className="w-4 h-4 text-amber-400" />
+                    </div>
                     <span className="text-xs font-bold text-[#6B2F2F] dark:text-[#F4D6C6] mr-1">
                       {t.yourRating}
                     </span>
@@ -818,7 +810,7 @@ export const SpotDetailModal: React.FC = () => {
                         <Star
                           className={`w-5 h-5 ${
                             (hoverRating || rating) >= star
-                              ? 'text-[#A44A3F] fill-[#A44A3F]'
+                              ? 'text-amber-400 fill-amber-400'
                               : 'text-[#D88C72]/50'
                           }`}
                         />
@@ -933,8 +925,9 @@ export const SpotDetailModal: React.FC = () => {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#6B2F2F] text-[#F4D6C6] font-extrabold text-xs">
-                          <Star className="w-3.5 h-3.5 fill-current" />
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#6B2F2F] text-[#F4D6C6] border border-[#D88C72]/50 font-extrabold text-xs shadow-xs">
+                          <Award className="w-4 h-4 text-amber-300" />
+                          <Star className="w-3.5 h-3.5 fill-amber-300 text-amber-300" />
                           <span>{rev.rating}.0</span>
                         </div>
                       </div>

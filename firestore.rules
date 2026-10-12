@@ -174,5 +174,11 @@ service cloud.firestore {
         allow delete: if false;
       }
     }
+
+    // Health check endpoint for connectivity validation
+    match /test/{docId} {
+      allow get: if true;
+      allow list, write: if false;
+    }
   }
 }
