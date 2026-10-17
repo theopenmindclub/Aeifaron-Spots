@@ -177,7 +177,7 @@ export const translations: Record<Language, Translations> = {
     
     // Spot Creation Form
     createSpotTitle: 'Προσθήκη Νέου Food Spot',
-    createSpotSubtitle: 'Μοιραστείτε ένα αυθεντικό διαμάντι με την Αειφαρειώτικη οικογένεια. Όλα τα πεδία είναι υποχρεωτικά.',
+    createSpotSubtitle: 'Μοιραστείτε ένα αυθεντικό διαμάντι με την Αειφαρειώτικη οικογένεια. Υποχρεωτικό είναι μόνο το όνομα.',
     fieldTitle: 'Όνομα Καταστήματος / Spot',
     fieldCategory: 'Κατηγορία Spot',
     fieldRegion: 'Γεωγραφική Περιοχή',
@@ -289,7 +289,7 @@ export const translations: Record<Language, Translations> = {
     
     // Spot Creation Form
     createSpotTitle: 'Add New Food Spot',
-    createSpotSubtitle: 'Share an authentic gem with the Aeifaron family. All fields are required.',
+    createSpotSubtitle: 'Share an authentic gem with the Aeifaron family. Only the venue name is required.',
     fieldTitle: 'Venue / Spot Name',
     fieldCategory: 'Spot Category',
     fieldRegion: 'Geographic Region',

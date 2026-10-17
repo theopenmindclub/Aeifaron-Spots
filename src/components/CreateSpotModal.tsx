@@ -121,13 +121,11 @@ export const CreateSpotModal: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const resolvedTitle = titleEl.trim();
-    const resolvedWhy = whyIsItSpecialEl.trim();
-
-    if (!resolvedTitle || !address.trim() || !resolvedWhy) {
+    if (!resolvedTitle) {
       showToast(
         language === 'el'
-          ? 'Συμπληρώστε όλα τα υποχρεωτικά πεδία'
-          : 'Please fill all required fields',
+          ? 'Παρακαλώ συμπληρώστε το Όνομα Καταστήματος / Spot'
+          : 'Please enter the Venue / Spot Name',
         'error'
       );
       return;
@@ -140,23 +138,27 @@ export const CreateSpotModal: React.FC = () => {
       .map((d) => d.trim())
       .filter((d) => d.length > 0);
 
+    const resolvedAddress = address.trim() || (language === 'el' ? 'Ελλάδα' : 'Greece');
+    const resolvedWhy = whyIsItSpecialEl.trim() || (language === 'el' ? 'Εξαιρετικό food spot που προτείνεται από μέλος του Αείφαρον.' : 'Exceptional spot recommended by an Aeifaron member.');
+    const resolvedCover = coverImageUrl.trim() || PHOTO_PRESETS[0].url;
+
     const spotPayload = {
       title: resolvedTitle,
       titleEl: resolvedTitle,
       category,
       region,
-      address: address.trim(),
-      googleMapsUrl: googleMapsUrl.trim() || `https://maps.google.com/?q=${encodeURIComponent(resolvedTitle + ' ' + address)}`,
+      address: resolvedAddress,
+      googleMapsUrl: googleMapsUrl.trim() || `https://maps.google.com/?q=${encodeURIComponent(resolvedTitle + ' ' + (address.trim() || region))}`,
       whyIsItSpecial: resolvedWhy,
       whyIsItSpecialEl: resolvedWhy,
-      signatureDishes: dishes.length > 0 ? dishes : ['Chef Signature Special'],
-      signatureDishesEl: dishes.length > 0 ? dishes : ['Σπεσιαλιτέ του Σεφ'],
+      signatureDishes: dishes.length > 0 ? dishes : [language === 'el' ? 'Σπεσιαλιτέ του Καταστήματος' : 'House Special'],
+      signatureDishesEl: dishes.length > 0 ? dishes : ['Σπεσιαλιτέ του Καταστήματος'],
       priceLevel,
-      coverImageUrl,
-      galleryUrls: [coverImageUrl],
+      coverImageUrl: resolvedCover,
+      galleryUrls: [resolvedCover],
       youtubeVideoUrls: youtubeVideoUrl.trim() ? [youtubeVideoUrl.trim()] : [],
       tags: [category, macroGroup, region.split(' ')[0]],
-      insiderTips
+      insiderTips: insiderTips.trim()
     };
 
     const res = await createHitSpot(spotPayload);
@@ -192,8 +194,8 @@ export const CreateSpotModal: React.FC = () => {
               </h2>
               <p className="text-xs sm:text-sm text-[#A9A1D1] font-semibold mt-0.5">
                 {language === 'el'
-                  ? 'Μοιραστείτε ένα αυθεντικό διαμάντι με την Αειφαρειώτικη οικογένεια. Όλα τα πεδία είναι υποχρεωτικά.'
-                  : 'Share an authentic gem with the Aeifaron family. All fields are required.'}
+                  ? 'Μοιραστείτε ένα αυθεντικό διαμάντι με την Αειφαρειώτικη οικογένεια. Υποχρεωτικό είναι μόνο το όνομα.'
+                  : 'Share an authentic gem with the Aeifaron family. Only the venue name is required.'}
               </p>
             </div>
           </div>
@@ -209,7 +211,7 @@ export const CreateSpotModal: React.FC = () => {
         {/* Scrollable Form */}
         <form onSubmit={handleSubmit} className="overflow-y-auto px-6 py-6 space-y-6 bg-[#E8E4F3] dark:bg-[#302B4D]">
           
-          {/* Single Title Input */}
+          {/* Single Title Input - The ONLY mandatory field */}
           <div>
             <label className="block text-xs font-extrabold uppercase tracking-wider text-[#302B4D] dark:text-[#A9A1D1] mb-1.5">
               {t.fieldTitle} *
@@ -224,10 +226,10 @@ export const CreateSpotModal: React.FC = () => {
             />
           </div>
 
-          {/* Macro Category (ΠΡΩΙΝΑ/BRUNCH, ΦΑΓΗΤΟ/FOOD, ΓΛΥΚΑ/DESERTS, ΦΟΥΡΝΟΙ/PIES, ΚΑΦΕΣ/COFFEE) */}
+          {/* Macro Category (ΠΡΩΙΝΑ/BRUNCH, ΦΑΓΗΤΟ/FOOD, ΓΛΥΚΑ/DESERTS, ΦΟΥΡΝΟΙ/PIES, ΚΑΦΕΣ/COFFEE) -> Είδος Spot */}
           <div>
             <label className="block text-xs font-extrabold uppercase tracking-wider text-[#302B4D] dark:text-[#A9A1D1] mb-2">
-              {language === 'el' ? 'Κατηγορία Αναζήτησης *' : 'Search Category *'}
+              {language === 'el' ? 'Είδος Spot' : 'Spot Type'}
             </label>
             <div className="flex flex-wrap gap-2">
               {MACRO_GROUPS.map((grp) => {
@@ -255,7 +257,7 @@ export const CreateSpotModal: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-extrabold uppercase tracking-wider text-[#302B4D] dark:text-[#A9A1D1] mb-1.5">
-                {t.fieldCategory} *
+                {t.fieldCategory}
               </label>
               <select
                 value={category}
@@ -272,7 +274,7 @@ export const CreateSpotModal: React.FC = () => {
 
             <div>
               <label className="block text-xs font-extrabold uppercase tracking-wider text-[#302B4D] dark:text-[#A9A1D1] mb-1.5">
-                {t.fieldRegion} *
+                {t.fieldRegion}
               </label>
               <select
                 value={region}
@@ -288,11 +290,11 @@ export const CreateSpotModal: React.FC = () => {
             </div>
           </div>
 
-          {/* Address & Google Maps Link */}
+          {/* Address & Google Maps Link (Address is now optional) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-extrabold uppercase tracking-wider text-[#302B4D] dark:text-[#A9A1D1] mb-1.5">
-                {t.fieldAddress} *
+                {t.fieldAddress} <span className="text-[11px] font-normal opacity-75">({language === 'el' ? 'Προαιρετικό' : 'Optional'})</span>
               </label>
               <input
                 type="text"
@@ -300,13 +302,12 @@ export const CreateSpotModal: React.FC = () => {
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder="Δωρού 2, Σύνταγμα, Αθήνα"
                 className="w-full px-4 py-3 rounded-xl bg-white dark:bg-[#231f3a] border-2 border-[#A9A1D1] dark:border-[#625B8C] text-[#302B4D] dark:text-[#E8E4F3] text-sm font-medium focus:ring-2 focus:ring-[#625B8C] focus:outline-none"
-                required
               />
             </div>
 
             <div>
               <label className="block text-xs font-extrabold uppercase tracking-wider text-[#302B4D] dark:text-[#A9A1D1] mb-1.5">
-                {t.fieldMapsUrl} *
+                {t.fieldMapsUrl}
               </label>
               <input
                 type="url"
@@ -318,11 +319,11 @@ export const CreateSpotModal: React.FC = () => {
             </div>
           </div>
 
-          {/* THE SECRET SAUCE - Single Clean Section without AI Button or English Tasting Notes */}
+          {/* THE SECRET SAUCE - Optional */}
           <div className="p-5 rounded-2xl bg-[#A9A1D1]/35 dark:bg-[#231f3a] border-2 border-[#625B8C] space-y-3">
             <div>
               <label className="block text-sm font-black uppercase tracking-wider text-[#302B4D] dark:text-[#E8E4F3]">
-                {t.fieldWhySpecial} *
+                {t.fieldWhySpecial} <span className="text-xs font-normal opacity-75">({language === 'el' ? 'Προαιρετικό' : 'Optional'})</span>
               </label>
               <p className="text-xs text-[#625B8C] dark:text-[#A9A1D1] font-semibold mt-0.5">
                 {t.fieldWhySpecialHelp}
@@ -340,16 +341,15 @@ export const CreateSpotModal: React.FC = () => {
                     : 'Explain the raw ingredients, traditional technique, secret recipe...'
                 }
                 className="w-full p-3.5 rounded-xl bg-white dark:bg-[#302B4D] border-2 border-[#A9A1D1] dark:border-[#625B8C] text-[#302B4D] dark:text-[#E8E4F3] text-sm font-medium focus:ring-2 focus:ring-[#625B8C] focus:outline-none resize-none leading-relaxed"
-                required
               />
             </div>
           </div>
 
-          {/* Signature Dishes & Price Level (5-10€, 10-15€, 15-20€, 20-25€ και πάνω) */}
+          {/* Signature Dishes & Price Level (Optional) */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="sm:col-span-2">
               <label className="block text-xs font-extrabold uppercase tracking-wider text-[#302B4D] dark:text-[#A9A1D1] mb-1.5">
-                {t.fieldSignatureDishes} *
+                {t.fieldSignatureDishes} <span className="text-[11px] font-normal opacity-75">({language === 'el' ? 'Προαιρετικό' : 'Optional'})</span>
               </label>
               <input
                 type="text"
@@ -357,13 +357,12 @@ export const CreateSpotModal: React.FC = () => {
                 onChange={(e) => setSignatureDishesRaw(e.target.value)}
                 placeholder={t.fieldSignatureDishesHelp}
                 className="w-full px-4 py-3 rounded-xl bg-white dark:bg-[#231f3a] border-2 border-[#A9A1D1] dark:border-[#625B8C] text-[#302B4D] dark:text-[#E8E4F3] text-sm font-medium focus:ring-2 focus:ring-[#625B8C] focus:outline-none"
-                required
               />
             </div>
 
             <div>
               <label className="block text-xs font-extrabold uppercase tracking-wider text-[#302B4D] dark:text-[#A9A1D1] mb-1.5">
-                {t.fieldPriceLevel} *
+                {t.fieldPriceLevel} <span className="text-[11px] font-normal opacity-75">({language === 'el' ? 'Προαιρετικό' : 'Optional'})</span>
               </label>
               <select
                 value={priceLevel}
@@ -379,11 +378,11 @@ export const CreateSpotModal: React.FC = () => {
             </div>
           </div>
 
-          {/* Cover Photo Preset Selector, Device Upload & URL */}
+          {/* Cover Photo Preset Selector, Device Upload & URL (Optional) */}
           <div className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <label className="block text-xs font-extrabold uppercase tracking-wider text-[#302B4D] dark:text-[#A9A1D1]">
-                {t.fieldCoverImage} *
+                {t.fieldCoverImage} <span className="text-[11px] font-normal opacity-75">({language === 'el' ? 'Προαιρετικό' : 'Optional'})</span>
               </label>
               <input
                 ref={fileInputRef}
@@ -431,7 +430,6 @@ export const CreateSpotModal: React.FC = () => {
               onChange={(e) => setCoverImageUrl(e.target.value)}
               placeholder="https://images.unsplash.com/..."
               className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-[#231f3a] border-2 border-[#A9A1D1] dark:border-[#625B8C] text-[#302B4D] dark:text-[#E8E4F3] text-xs font-mono focus:ring-2 focus:ring-[#625B8C] focus:outline-none"
-              required
             />
 
             {/* Missing photo helper button */}
@@ -454,10 +452,10 @@ export const CreateSpotModal: React.FC = () => {
             </div>
           </div>
 
-          {/* Insider Tips */}
+          {/* Insider Tips (Optional) */}
           <div>
             <label className="block text-xs font-extrabold uppercase tracking-wider text-[#302B4D] dark:text-[#A9A1D1] mb-1.5">
-              {t.fieldInsiderTips} *
+              {t.fieldInsiderTips} <span className="text-[11px] font-normal opacity-75">({language === 'el' ? 'Προαιρετικό' : 'Optional'})</span>
             </label>
             <input
               type="text"
@@ -469,7 +467,6 @@ export const CreateSpotModal: React.FC = () => {
                   : 'e.g. Best time is 11:30 AM before the queue forms. Ask for the secret house sourdough.'
               }
               className="w-full px-4 py-3 rounded-xl bg-white dark:bg-[#231f3a] border-2 border-[#A9A1D1] dark:border-[#625B8C] text-[#302B4D] dark:text-[#E8E4F3] text-sm font-medium focus:ring-2 focus:ring-[#625B8C] focus:outline-none"
-              required
             />
           </div>
 

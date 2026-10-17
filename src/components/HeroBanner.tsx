@@ -266,8 +266,13 @@ export const HeroBanner: React.FC = () => {
           </p>
         </div>
 
-        {/* 1. Search: "Αναζήτηση εδώ: όνομα, φαγητό" + Collapsed Macro Categories Dropdown */}
-        <div className="space-y-3">
+        {/* 1. Search: "Αναζήτηση στην εφαρμογή" */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 px-1 text-sm sm:text-base font-extrabold uppercase tracking-wide text-[#243B35] dark:text-[#F1E9D2]">
+            <Search className="w-4 h-4 text-[#C1623C]" />
+            <span>{language === 'el' ? 'Αναζήτηση στην εφαρμογή' : 'Search in the app'}</span>
+          </div>
+
           <div className="relative max-w-4xl bg-[#243B35] rounded-2xl shadow-lg border-2 border-[#6B8E7B] p-2 sm:p-3 space-y-2">
             
             {/* Search Input Row (Αναζήτηση εδώ: όνομα, φαγητό) */}
