@@ -14,7 +14,10 @@ import {
   Link2,
   Camera,
   Heart,
-  Youtube
+  Youtube,
+  ChevronDown,
+  ChevronUp,
+  ChevronsDown
 } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -37,6 +40,7 @@ export const SpotCard: React.FC<SpotCardProps> = ({ spot }) => {
   const { language, t, setSelectedSpot, setSelectedMemberProfile, showToast, favoriteSpotIds, toggleFavoriteSpot } = useApp();
   const [imageError, setImageError] = useState(false);
   const [isStreetViewOpen, setIsStreetViewOpen] = useState(false);
+  const [isRolledDown, setIsRolledDown] = useState(false);
 
   const isFavorite = favoriteSpotIds.includes(spot.id);
   const mapEmbedUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${spot.coordinates.lng - 0.008}%2C${spot.coordinates.lat - 0.005}%2C${spot.coordinates.lng + 0.008}%2C${spot.coordinates.lat + 0.005}&layer=mapnik&marker=${spot.coordinates.lat}%2C${spot.coordinates.lng}`;
@@ -543,6 +547,75 @@ export const SpotCard: React.FC<SpotCardProps> = ({ spot }) => {
                 )}
               </div>
             )}
+            {/* Rolldown Expanded Section for Comfortable On-Card Navigation */}
+            {isRolledDown && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mt-4 pt-3.5 border-t border-[#D88C72]/40 space-y-3"
+              >
+                {/* Full Secret Sauce */}
+                <div className="p-3 rounded-xl bg-black/10 dark:bg-white/10 text-xs font-medium space-y-1">
+                  <span className="font-extrabold text-[#6B2F2F] dark:text-[#F4D6C6] flex items-center gap-1.5 uppercase text-[11px]">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    <span>The Secret Sauce (Πλήρης Περιγραφή):</span>
+                  </span>
+                  <p className="italic text-xs text-[#6B2F2F] dark:text-[#F4D6C6] leading-relaxed">
+                    "{displaySecretSauce}"
+                  </p>
+                </div>
+
+                {/* All signature dishes */}
+                {displaySignature && displaySignature.length > 2 && (
+                  <div>
+                    <div className="text-[11px] font-black uppercase text-[#6B2F2F] dark:text-[#F4D6C6] mb-1.5 flex items-center gap-1">
+                      <Utensils className="w-3 h-3" />
+                      <span>Όλα τα Signature Πιάτα ({displaySignature.length}):</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {displaySignature.map((dish, i) => (
+                        <span
+                          key={i}
+                          className="px-2 py-0.5 rounded-lg text-xs font-bold bg-[#D88C72]/20 text-[#6B2F2F] dark:text-[#F4D6C6] border border-[#A44A3F]/30"
+                        >
+                          {dish}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Insider tips preview if available */}
+                {spot.insiderTips && (
+                  <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs font-medium space-y-1">
+                    <span className="font-bold text-amber-900 dark:text-amber-200 flex items-center gap-1 text-[11px]">
+                      <span>💡</span> <span>Insider Tip:</span>
+                    </span>
+                    <p className="italic text-[11px] text-amber-950 dark:text-amber-100">{spot.insiderTips}</p>
+                  </div>
+                )}
+
+                {/* Rolldown quick actions */}
+                <div className="flex items-center justify-between gap-2 pt-1">
+                  <button
+                    onClick={() => setIsStreetViewOpen(true)}
+                    className="px-2.5 py-1.5 rounded-xl bg-[#6B2F2F]/80 hover:bg-[#6B2F2F] text-[#F4D6C6] text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    <Camera className="w-3.5 h-3.5" />
+                    <span>Street View</span>
+                  </button>
+
+                  <button
+                    onClick={() => setSelectedSpot(spot)}
+                    className="px-3 py-1.5 rounded-xl bg-[#087F5B] hover:bg-[#066045] text-white text-[11px] font-black flex items-center gap-1 cursor-pointer shadow-xs"
+                  >
+                    <span>Πλήρης Καρτέλα (Rolldown Modal)</span>
+                    <ChevronsDown className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </motion.div>
+            )}
           </div>
 
           {/* Footer: Author Badge & Actions */}
@@ -570,6 +643,27 @@ export const SpotCard: React.FC<SpotCardProps> = ({ spot }) => {
 
             {/* Actions */}
             <div className="flex items-center gap-1.5 shrink-0">
+              {/* Quick Rolldown Accordion Toggle */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsRolledDown((prev) => !prev);
+                }}
+                title={isRolledDown ? 'Σύμπτυξη Rolldown' : 'Rolldown & Γρήγορη Πλοήγηση στην Κάρτα'}
+                className={`p-2 rounded-xl transition-all cursor-pointer border flex items-center gap-1 text-xs font-black ${
+                  isRolledDown
+                    ? 'bg-amber-400 text-amber-950 border-amber-300 shadow-sm'
+                    : isBeach
+                    ? 'bg-teal-50 hover:bg-teal-100 text-[#14B8A6] border-teal-200 dark:bg-slate-800'
+                    : isLocation
+                    ? 'bg-[#B5A58C]/40 hover:bg-[#B5A58C]/70 text-[#5B3E36] dark:text-[#DCBDA7] border-[#6B715A]/40'
+                    : 'bg-[#D88C72]/30 hover:bg-[#D88C72]/60 text-[#6B2F2F] dark:text-[#F4D6C6] border-[#A44A3F]/40'
+                }`}
+              >
+                {isRolledDown ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                <span className="hidden xs:inline text-[10px] font-black">{isRolledDown ? 'Σύμπτυξη' : 'Rolldown'}</span>
+              </button>
+
               <a
                 href={spot.googleMapsUrl}
                 target="_blank"
@@ -588,7 +682,8 @@ export const SpotCard: React.FC<SpotCardProps> = ({ spot }) => {
 
               <button
                 onClick={() => setSelectedSpot(spot)}
-                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all shadow-xs cursor-pointer ${
+                title="Άνοιγμα πλήρους καρτέλας με άνετη πλοήγηση rolldown"
+                className={`flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-xl text-xs font-black transition-all shadow-xs cursor-pointer ${
                   isBeach
                     ? 'bg-[#FF6B54] hover:bg-[#e85842] text-white'
                     : isLocation
@@ -596,7 +691,8 @@ export const SpotCard: React.FC<SpotCardProps> = ({ spot }) => {
                     : 'bg-[#6B2F2F] hover:bg-[#A44A3F] text-[#F4D6C6] border border-[#D88C72]/50'
                 }`}
               >
-                <span>{t.viewDetails}</span>
+                <ChevronsDown className="w-3.5 h-3.5 animate-bounce" />
+                <span>Rolldown & Προβολή</span>
               </button>
             </div>
 

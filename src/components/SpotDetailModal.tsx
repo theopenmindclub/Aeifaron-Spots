@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { CATEGORY_TRANSLATIONS, REGION_TRANSLATIONS, BADGE_TRANSLATIONS } from '../i18n/translations';
-import { getGamificationBadge } from '../types';
+import { getGamificationBadge, getGamificationInfo, HitSpot } from '../types';
 import { StreetViewModal } from './StreetViewModal';
 import { 
   X, 
@@ -20,7 +20,6 @@ import {
   Image as ImageIcon,
   Check,
   Camera,
-  Link2,
   Heart,
   Youtube,
   Award,
@@ -38,6 +37,96 @@ function extractYouTubeEmbedUrl(url: string): string | null {
     return `https://www.youtube.com/embed/${match[1]}`;
   }
   return null;
+}
+
+// Generates 3 balanced rows of authentic preview tags with '#' prefix for any food spot
+function getSpotPreviewTags(spot: HitSpot): string[][] {
+  const titleLow = (spot.title + ' ' + (spot.titleEl || '')).toLowerCase();
+  
+  if (spot.id === 'spot-2' || titleLow.includes('kostas') || titleLow.includes('κώστας')) {
+    return [
+      ['#χειροποίητο σουβλάκι', '#αλάδωτη πίτα', '#καλαμάκι χοιρινό'],
+      ['#μυστική κόκκινη σάλτσα', '#φρέσκος μαϊντανός', '#πρόβειο γιαούρτι'],
+      ['#παραδοσιακή συνταγή 1950', '#ψημένο στην πλάκα', '#ιστορικό spot']
+    ];
+  }
+  if (spot.id === 'spot-3' || titleLow.includes('dounias') || titleLow.includes('ντουνιάς')) {
+    return [
+      ['#παραδοσιακά μυζηθροπιτάκια', '#σφακιανή πίτα', '#τσικαλάτο κατσικάκι'],
+      ['#ξυλόφουρνος', '#προζυμένιο ψωμί', '#βιολογική φάρμα'],
+      ['#κρητική γαστρονομία', '#στάκα', '#χανιώτικο μπουρέκι']
+    ];
+  }
+  if (spot.id === 'spot-1' || titleLow.includes('epik') || titleLow.includes('gelato')) {
+    return [
+      ['#χειροποίητο gelato', '#φιστίκι αιγίνης ΠΟΠ', '#πρόβειο γάλα'],
+      ['#αυθεντικό καϊμάκι', '#σαλέπι', '#bitter σοκολάτα'],
+      ['#ελαιόλαδο καλαμάτας', '#φρέσκα υλικά', '#artisan γεύσεις']
+    ];
+  }
+  if (spot.id === 'spot-4' || titleLow.includes('thalassino') || titleLow.includes('θαλασσινό')) {
+    return [
+      ['#φρέσκο ψάρι', '#θαλασσινά αιγαίου', '#ταμπακαριά'],
+      ['#κακαβιά', '#χταπόδι ξυδάτο', '#ταρτάρ τόνου'],
+      ['#ψαροταβέρνα στο κύμα', '#ρομαντικό ηλιοβασίλεμα', '#χανιά']
+    ];
+  }
+  if (spot.id === 'spot-5' || titleLow.includes('koukos') || titleLow.includes('κούκος')) {
+    return [
+      ['#μπουγάτσα με κρέμα', '#χειροποίητο φύλλο', '#μπουγάτσα με κιμά'],
+      ['#παραδοσιακή συνταγή 1922', '#τραγανό φύλλο', '#ζεστή κανέλα'],
+      ['#θεσσαλονικιώτικη παράδοση', '#πρωινό hit', '#αυθεντική γεύση']
+    ];
+  }
+  if (spot.id === 'spot-6' || titleLow.includes('matina') || titleLow.includes('ματίνα')) {
+    return [
+      ['#πατάτες νάξου', '#ντόπια γραβιέρα', '#κολοκυθοκεφτέδες'],
+      ['#βιολογικό περιβόλι', '#αρνάκι λεμονάτο', '#ξυλόφουρνος'],
+      ['#κυκλαδίτικη κουζίνα', '#κορώνος', '#αυθεντικό χωριό']
+    ];
+  }
+
+  // Dynamic tags extraction for all other spots
+  const rawTags: string[] = [];
+  const dishes = (spot.signatureDishesEl && spot.signatureDishesEl.length > 0)
+    ? spot.signatureDishesEl
+    : spot.signatureDishes;
+
+  dishes.forEach((d) => {
+    const clean = d.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '').trim().toLowerCase();
+    if (clean) rawTags.push(`#${clean}`);
+  });
+
+  if (spot.tags && spot.tags.length > 0) {
+    spot.tags.forEach((t) => {
+      const clean = t.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '').trim().toLowerCase();
+      if (clean) rawTags.push(`#${clean}`);
+    });
+  }
+
+  if (rawTags.length < 6) {
+    if (spot.category === 'Authentic Souvlaki') {
+      rawTags.push('#χειροποίητο σουβλάκι', '#αλάδωτη πίτα', '#καρβουνιστή γεύση', '#παραδοσιακό');
+    } else if (spot.category === 'Gelato') {
+      rawTags.push('#χειροποίητο gelato', '#φρέσκα υλικά', '#παραδοσιακή γεύση', '#artisan');
+    } else if (spot.category === 'Seafood & Psarotaverna') {
+      rawTags.push('#φρέσκο ψάρι', '#θαλασσινοί μεζέδες', '#αιγαίο', '#αυθεντική ψαροταβέρνα');
+    } else if (spot.category === 'Hidden Mountain Taverna') {
+      rawTags.push('#παραδοσιακά μυζηθροπιτάκια', '#σφακιανή πίτα', '#τσικαλάτο', '#ξυλόφουρνος');
+    } else if (spot.category === 'Bougatsa & Pastry') {
+      rawTags.push('#χειροποίητο φύλλο', '#μπουγάτσα', '#τραγανή σφολιάτα', '#ζεστή κρέμα');
+    } else {
+      rawTags.push('#αυθεντική γεύση', '#τοπική γαστρονομία', '#μυστική συνταγή', '#παραδοσιακό spot');
+    }
+  }
+
+  const unique = Array.from(new Set(rawTags));
+  const perRow = Math.max(2, Math.ceil(unique.length / 3));
+  return [
+    unique.slice(0, perRow),
+    unique.slice(perRow, perRow * 2),
+    unique.slice(perRow * 2, perRow * 3)
+  ];
 }
 
 export const SpotDetailModal: React.FC = () => {
@@ -78,6 +167,23 @@ export const SpotDetailModal: React.FC = () => {
   // Street view guide modal state
   const [isStreetViewOpen, setIsStreetViewOpen] = useState(false);
 
+  // User interactive Like and Visited (Quality confirmation) state
+  const [likedSpotIds, setLikedSpotIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('hitspots_user_likes');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return ['spot-2'];
+  });
+
+  const [visitedSpotIds, setVisitedSpotIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('hitspots_user_visited');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return ['spot-2', 'spot-3'];
+  });
+
   // Add YouTube Video / Update Spot state
   const [isAddingYoutube, setIsAddingYoutube] = useState(false);
   const [newYoutubeUrl, setNewYoutubeUrl] = useState('');
@@ -88,12 +194,46 @@ export const SpotDetailModal: React.FC = () => {
   if (!selectedSpot) return null;
 
   const isFavorite = favoriteSpotIds.includes(selectedSpot.id);
+  const isLiked = likedSpotIds.includes(selectedSpot.id);
+  const isVisited = visitedSpotIds.includes(selectedSpot.id);
+
+  const handleToggleLike = () => {
+    const updated = isLiked
+      ? likedSpotIds.filter((id) => id !== selectedSpot.id)
+      : [...likedSpotIds, selectedSpot.id];
+    setLikedSpotIds(updated);
+    try {
+      localStorage.setItem('hitspots_user_likes', JSON.stringify(updated));
+    } catch {}
+    showToast(
+      isLiked ? 'Αφαιρέθηκε το Like' : '👍 Σας ευχαριστούμε για το Like στο Spot!',
+      'success'
+    );
+  };
+
+  const handleToggleVisited = () => {
+    const updated = isVisited
+      ? visitedSpotIds.filter((id) => id !== selectedSpot.id)
+      : [...visitedSpotIds, selectedSpot.id];
+    setVisitedSpotIds(updated);
+    try {
+      localStorage.setItem('hitspots_user_visited', JSON.stringify(updated));
+    } catch {}
+    showToast(
+      isVisited
+        ? 'Αφαιρέθηκε η επιβεβαίωση επίσκεψης'
+        : '👑 Επιβεβαιώσατε την επίσκεψη και την ποιότητα της σύστασης!',
+      'success'
+    );
+  };
+
   const isBeach = selectedSpot.category === 'Παραλίες';
   const isLocation = selectedSpot.category === 'Τοποθεσίες';
   const spotReviews = reviews.filter((r) => r.spotId === selectedSpot.id);
   const categoryConfig = CATEGORY_TRANSLATIONS[selectedSpot.category] || { el: selectedSpot.category, en: selectedSpot.category, icon: '🍽️' };
   const regionConfig = REGION_TRANSLATIONS[selectedSpot.region] || { el: selectedSpot.region, en: selectedSpot.region };
-  const authorBadgeName = getGamificationBadge(selectedSpot.author?.spotsSubmittedCount || 1);
+  const authorGamification = getGamificationInfo(selectedSpot.author?.spotsSubmittedCount || 1, selectedSpot.author?.reviewsCount || 0);
+  const authorBadgeName = authorGamification.badge;
   const authorRank = allUsers && spots
     ? [...allUsers]
         .map((u) => {
@@ -112,6 +252,9 @@ export const SpotDetailModal: React.FC = () => {
   const displaySignature = (language === 'el' && selectedSpot.signatureDishesEl && selectedSpot.signatureDishesEl.length > 0) 
     ? selectedSpot.signatureDishesEl 
     : selectedSpot.signatureDishes;
+  const tagRows = getSpotPreviewTags(selectedSpot);
+  const spotLikes = (selectedSpot.helpfulVotes || (selectedSpot.reviewsCount * 2 + 14)) + (isLiked ? 1 : 0);
+  const visitedCount = (selectedSpot.verifiedSpot ? 18 : 7) + (isVisited ? 1 : 0);
 
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -220,9 +363,9 @@ export const SpotDetailModal: React.FC = () => {
           }`}
         >
           
-          {/* Modal Header - Designed with Priority for Mobile Smartphone Experience Design */}
+          {/* Fixed Modal Header: ONLY profile photo, full name + leaderboard level, and Red 'X' close button */}
           <div
-            className={`sticky top-0 z-20 px-4 sm:px-6 py-3.5 backdrop-blur-md border-b flex flex-col gap-2.5 ${
+            className={`sticky top-0 z-20 px-4 sm:px-6 py-3.5 backdrop-blur-md border-b flex items-center justify-between gap-3 shadow-xs ${
               isBeach
                 ? 'bg-[#14B8A6] text-white border-[#FF6B54]'
                 : isLocation
@@ -230,101 +373,132 @@ export const SpotDetailModal: React.FC = () => {
                 : 'bg-[#5B2E28] text-[#F4D6C6] border-[#A44A3F]'
             }`}
           >
-            {/* Top row: Left (Profile Pic, Name above/beside & Gamification Level) + Right (❤️, 👑, ✈️, 🔗, ✕) */}
-            <div className="flex items-center justify-between gap-2.5">
-              {/* Left Side: Avatar, Name, and Gamification Badge */}
-              <div className="flex items-center gap-3 min-w-0">
-                <img
-                  src={selectedSpot.author.avatarUrl}
-                  alt={selectedSpot.author.firstName}
-                  className="w-12 h-12 rounded-full object-cover ring-2 ring-[#D88C72] shrink-0 shadow-sm"
-                />
-                <div className="min-w-0">
-                  <div className="font-heading text-sm sm:text-base font-bold text-[#F1E9D2] leading-tight truncate">
-                    {selectedSpot.author.firstName} {selectedSpot.author.lastName}
-                  </div>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-[#A44A3F] text-[#F4D6C6] border border-[#D88C72]/40 flex items-center gap-1 shrink-0">
-                      <span>🏅</span>
-                      <span>{authorBadgeName}</span>
-                    </span>
-                    <span className="w-4 h-4 rounded-full bg-[#087F5B] text-white flex items-center justify-center text-[10px] font-black shadow-2xs shrink-0">
-                      ✓
-                    </span>
-                  </div>
+            {/* Left: Avatar + Full Name + Leaderboard Level Title */}
+            <div className="flex items-center gap-3 min-w-0">
+              <img
+                src={selectedSpot.author.avatarUrl}
+                alt={selectedSpot.author.firstName}
+                className="w-12 h-12 sm:w-13 sm:h-13 rounded-full object-cover ring-2 ring-[#D88C72] shrink-0 shadow-md"
+              />
+              <div className="min-w-0">
+                <div className="font-heading text-base sm:text-lg md:text-xl font-black text-[#F1E9D2] leading-tight truncate">
+                  {selectedSpot.author.firstName} {selectedSpot.author.lastName}
                 </div>
-              </div>
-
-              {/* Action buttons row matching user design: Heart, Crown, Viber, Link, Close */}
-              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-                {/* 1. Heart (Favorite) */}
-                <button
-                  onClick={() => toggleFavoriteSpot(selectedSpot.id)}
-                  title={isFavorite ? 'Αφαίρεση από τα Αγαπημένα' : 'Προσθήκη στα Αγαπημένα (Λήψη ειδοποιήσεων)'}
-                  className={`w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center transition-all hover:scale-105 cursor-pointer shadow-md ${
-                    isFavorite
-                      ? 'bg-[#FF6B54] text-white ring-2 ring-white/60'
-                      : 'bg-[#FF6B54] hover:bg-[#ff553b] text-white'
-                  }`}
-                >
-                  <Heart className={`w-5 h-5 ${isFavorite ? 'fill-current' : 'fill-white'}`} />
-                </button>
-
-                {/* 2. Royal Crown indicator sign */}
-                <div
-                  title={`Κατάταξη Leaderboard: #${authorRank > 0 ? authorRank : 1} (${authorBadgeName})`}
-                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-[#D88C72]/30 border border-[#D88C72] flex items-center justify-center text-lg shadow-xs select-none cursor-default"
-                >
-                  👑
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-xs sm:text-sm font-extrabold text-[#F4D6C6] flex items-center gap-1.5 truncate">
+                    <span className="text-sm">{authorGamification.icon || '🏅'}</span>
+                    <span>{authorGamification.titleEl}</span>
+                  </span>
+                  <span className="text-[10px] sm:text-xs font-black text-[#F4D6C6]/90 bg-black/25 px-2 py-0.5 rounded-md border border-white/10 shrink-0">
+                    Rank #{authorRank > 0 ? authorRank : 1}
+                  </span>
                 </div>
-
-                {/* 3. Send to Viber */}
-                <button
-                  onClick={handleViberShare}
-                  title="Αποστολή στο Viber"
-                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-[#7360F2] hover:bg-[#5f4de0] text-white flex items-center justify-center shadow-md transition-all hover:scale-105 cursor-pointer"
-                >
-                  <Send className="w-5 h-5" />
-                </button>
-
-                {/* 4. Link button */}
-                <button
-                  onClick={handleCopyLink}
-                  title="Αντιγραφή συνδέσμου καρτέλας"
-                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-[#6B2F2F] hover:bg-[#853C35] text-[#F4D6C6] border border-[#D88C72]/50 flex items-center justify-center shadow-xs transition-colors cursor-pointer"
-                >
-                  {isCopied ? <Check className="w-5 h-5 text-[#CDFF9B]" /> : <Link2 className="w-5 h-5" />}
-                </button>
-
-                {/* 5. Close button */}
-                <button
-                  onClick={() => setSelectedSpot(null)}
-                  title="Κλείσιμο"
-                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-[#7A3530] hover:bg-[#9B423C] text-[#F4D6C6] flex items-center justify-center shadow-xs transition-colors cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
               </div>
             </div>
 
-            {/* Title & Spot Category line */}
-            <div className="flex items-center justify-between gap-2 pt-1 border-t border-white/10">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="font-heading text-lg sm:text-xl font-bold text-[#F1E9D2] truncate">
-                  {displayTitle}
-                </span>
-                {selectedSpot.verifiedSpot && (
-                  <CheckCircle2 className="w-4 h-4 text-[#CDFF9B] shrink-0" />
-                )}
-              </div>
-              <span className="text-xs font-bold text-[#F4D6C6]/90 shrink-0">
-                {categoryConfig.icon} {categoryConfig.el}
-              </span>
-            </div>
+            {/* Far Right: Thick Bold Bright Red 'X' Button to close the modal */}
+            <button
+              onClick={() => setSelectedSpot(null)}
+              title="Κλείσιμο καρτέλας"
+              aria-label="Κλείσιμο καρτέλας"
+              className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-[#DC2626] hover:bg-[#B91C1C] active:scale-95 text-white flex items-center justify-center shadow-xl border-2 border-red-300 font-black cursor-pointer shrink-0 transition-transform"
+            >
+              <X className="w-7 h-7 sm:w-8 sm:h-8 stroke-[3.5]" />
+            </button>
           </div>
 
-          {/* Scrollable Content */}
-          <div className="overflow-y-auto px-4 sm:px-6 py-6 space-y-7">
+          {/* Scrollable Content (rolls down) */}
+          <div className="overflow-y-auto px-4 sm:px-6 py-5 space-y-5">
+            
+            {/* Action row: Red Heart (Favorites), Thumbs Up Like (Brand colors), Crown (Visited & Quality confirmed), Viber share */}
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+              {/* 1. Heart: Red "Αποθήκευση στα αγαπημένα" */}
+              <button
+                onClick={() => toggleFavoriteSpot(selectedSpot.id)}
+                title={isFavorite ? 'Αφαίρεση από τα Αγαπημένα' : 'Αποθήκευση στα αγαπημένα'}
+                className={`h-10 sm:h-11 px-3 sm:px-3.5 rounded-2xl flex items-center gap-1.5 font-heading font-black text-xs sm:text-sm transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-md ${
+                  isFavorite
+                    ? 'bg-[#DC2626] text-white ring-2 ring-white/60'
+                    : 'bg-[#EF4444] hover:bg-[#DC2626] text-white'
+                }`}
+              >
+                <Heart className={`w-4 h-4 sm:w-5 sm:h-5 ${isFavorite ? 'fill-current' : 'fill-white'}`} />
+                <span>Αγαπημένα</span>
+              </button>
+
+              {/* 2. 👍 Like indicator in card's brand colors */}
+              <button
+                onClick={handleToggleLike}
+                title="Δείκτης Like - Πατήστε για Like!"
+                className={`h-10 sm:h-11 px-3 sm:px-3.5 rounded-2xl flex items-center gap-1.5 font-heading font-black text-xs sm:text-sm border transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-md ${
+                  isBeach
+                    ? 'bg-[#14B8A6] hover:bg-[#0d9488] text-white border-teal-300/40'
+                    : isLocation
+                    ? 'bg-[#6B715A] hover:bg-[#5B3E36] text-[#DCBDA7] border-[#B5A58C]/50'
+                    : 'bg-[#A44A3F] hover:bg-[#853C35] text-[#F4D6C6] border-[#D88C72]/60'
+                }`}
+              >
+                <span className="text-sm sm:text-base">👍</span>
+                <span>{spotLikes}</span>
+                <span className="text-[11px] opacity-90">Like</span>
+              </button>
+
+              {/* 3. Crown 👑: Indicates user visited and confirms quality of recommendation */}
+              <button
+                onClick={handleToggleVisited}
+                title="Η κορώνα υποδηλώνει ότι ο χρήστης πήγε εκεί και επιβεβαιώνει την ποιότητα της σύστασης (Πατήστε για επιβεβαίωση)"
+                className={`h-10 sm:h-11 px-3 sm:px-3.5 rounded-2xl flex items-center gap-1.5 font-heading font-black text-xs sm:text-sm border transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-md ${
+                  isVisited
+                    ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-amber-950 ring-2 ring-amber-300 font-black'
+                    : isBeach
+                    ? 'bg-[#087F5B] hover:bg-[#066045] text-amber-200 border-amber-300/40'
+                    : isLocation
+                    ? 'bg-[#5B3E36] hover:bg-[#6B715A] text-amber-300 border-amber-300/40'
+                    : 'bg-[#6B2F2F] hover:bg-[#853C35] text-amber-300 border-amber-300/40'
+                }`}
+              >
+                <span className="text-sm sm:text-base">👑</span>
+                <span>{visitedCount}</span>
+                <span className="text-[11px] opacity-90">Επιβεβαίωση</span>
+              </button>
+
+              {/* 4. Viber Share */}
+              <button
+                onClick={handleViberShare}
+                title="Αποστολή στο Viber"
+                className="h-10 sm:h-11 px-3 sm:px-3.5 rounded-2xl bg-[#7360F2] hover:bg-[#5f4de0] text-white flex items-center gap-1.5 font-heading font-black text-xs sm:text-sm shadow-md transition-all hover:scale-105 active:scale-95 cursor-pointer"
+              >
+                <Send className="w-4 h-4" />
+                <span>Viber</span>
+              </button>
+            </div>
+
+            {/* Title Row: Bold, but ENTIRE title fully visible (no truncation) */}
+            <div className={`p-4 sm:p-5 rounded-2xl border-2 shadow-sm ${
+              isBeach
+                ? 'bg-[#14B8A6]/10 border-[#14B8A6]'
+                : isLocation
+                ? 'bg-[#5B3E36]/15 border-[#6B715A]'
+                : 'bg-[#5B2E28]/15 dark:bg-[#5B2E28]/40 border-[#A44A3F]'
+            }`}>
+              <div className="flex flex-wrap items-center justify-between gap-2.5">
+                <h2 className="font-heading text-xl sm:text-2xl md:text-3xl font-black text-[#5B2E28] dark:text-[#F1E9D2] leading-snug break-words">
+                  {displayTitle}
+                </h2>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="px-3 py-1 rounded-xl bg-[#6B2F2F] text-xs sm:text-sm font-bold text-[#F4D6C6] border border-[#D88C72]/40 flex items-center gap-1.5 shadow-2xs">
+                    <span>{categoryConfig.icon}</span>
+                    <span>{categoryConfig.el}</span>
+                  </span>
+                  {selectedSpot.verifiedSpot && (
+                    <span className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-[#087F5B] text-white text-xs font-black shadow-xs">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Verified</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
             
             {/* Main Photo Gallery */}
             <div className="space-y-3">
@@ -360,28 +534,54 @@ export const SpotDetailModal: React.FC = () => {
                 </div>
               )}
 
-              {/* Street View Screenshot Helper Card directly below photos matching Image 2 */}
-              <div className="p-4 sm:p-5 rounded-2xl bg-[#FFF7F2] dark:bg-[#A44A3F]/35 border-2 border-[#A44A3F] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
-                <div className="flex items-start sm:items-center gap-3.5">
-                  <div className="w-12 h-12 rounded-2xl bg-[#6B2F2F] text-[#F4D6C6] flex items-center justify-center shrink-0 shadow-xs">
-                    <Camera className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h5 className="font-heading text-sm sm:text-base font-black text-[#6B2F2F] dark:text-[#F4D6C6] leading-snug">
-                      Δεν έχετε δική σας φωτογραφία από το μαγαζί;
-                    </h5>
-                    <p className="text-xs text-[#A44A3F] dark:text-[#F4D6C6]/90 font-semibold mt-0.5">
-                      Αν δεν έχεις δική σου φωτογραφία από τον χώρο, ανέβασε ένα screenshot από το Google Maps Street View!
-                    </p>
-                  </div>
-                </div>
+              {/* Beside / Below photo: "Google Maps Link" and "Street View Screenshot" */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                {/* Google Maps Link */}
+                <a
+                  href={selectedSpot.googleMapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-[#087F5B] hover:bg-[#066045] text-white font-heading font-black text-xs sm:text-sm shadow-md transition-all hover:scale-[1.02] cursor-pointer border border-[#CDFF9B]/30"
+                >
+                  <MapPin className="w-4 h-4 text-[#CDFF9B]" />
+                  <span>Google Maps Link</span>
+                  <ExternalLink className="w-3.5 h-3.5 opacity-80" />
+                </a>
 
+                {/* Street View Screenshot Option */}
                 <button
                   onClick={() => setIsStreetViewOpen(true)}
-                  className="px-4 py-2.5 rounded-xl bg-[#6B2F2F] hover:bg-[#A44A3F] text-[#F4D6C6] font-heading font-black text-xs sm:text-sm shadow-md transition-all hover:scale-105 cursor-pointer shrink-0 self-start sm:self-center"
+                  className="flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-[#6B2F2F] hover:bg-[#853C35] text-[#F4D6C6] font-heading font-black text-xs sm:text-sm shadow-md transition-all hover:scale-[1.02] cursor-pointer border border-[#D88C72]/40"
                 >
-                  Οδηγός Street View Screenshot
+                  <Camera className="w-4 h-4 text-[#F4D6C6]" />
+                  <span>Street View Screenshot</span>
                 </button>
+              </div>
+            </div>
+
+            {/* TAGS SECTION: 3 Rows of Tags starting with # (giving a preview of the spot) */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-[#FFF7F2] dark:bg-[#A44A3F]/25 border-2 border-[#A44A3F] shadow-sm space-y-2.5">
+              <div className="flex items-center gap-2">
+                <span className="text-base">🏷️</span>
+                <h4 className="font-heading text-xs sm:text-sm font-black uppercase tracking-wider text-[#6B2F2F] dark:text-[#F4D6C6]">
+                  Tags Πρόγευσης Spot (Highlights & Γεύσεις)
+                </h4>
+              </div>
+
+              {/* 3 Rows of Tags */}
+              <div className="space-y-2">
+                {tagRows.map((row, rowIdx) => (
+                  <div key={rowIdx} className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                    {row.map((tag, tagIdx) => (
+                      <span
+                        key={tagIdx}
+                        className="px-2.5 sm:px-3 py-1 rounded-xl text-xs sm:text-[13px] font-bold bg-[#6B2F2F]/10 dark:bg-[#F4D6C6]/15 text-[#6B2F2F] dark:text-[#F4D6C6] border border-[#A44A3F]/30 hover:border-[#A44A3F] transition-colors"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                ))}
               </div>
             </div>
 
